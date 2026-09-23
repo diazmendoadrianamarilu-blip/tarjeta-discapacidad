@@ -63,11 +63,18 @@ se usa `PERIODO` de `src/config.js`.
 
 ## 3. Lista de verificación en el tenant (antes de desplegar)
 
-1. **Ethos Integration → Aplicaciones → la aplicación de Experience**
-   (tenant `ee114c5f…`): las tres APIs (`x-docente-sesion`,
-   `x-discapacidad-docente`, `x-discapacidad-detalle`) deben estar entre los
-   recursos a los que la aplicación tiene acceso. Si falta alguna, el proxy
-   responde 403/404 y el panel de diagnóstico de la tarjeta lo muestra.
+1. **Primero despliega y prueba.** Si el panel de diagnóstico no aparece y la
+   lista carga, no hay nada que configurar en Ethos Integration.
+   Solo si el panel muestra **401, 403 o 404** para alguna API:
+   - **No crees una aplicación nueva.** Experience ya usa una aplicación de
+     Ethos que existía antes de la tarjeta. En
+     `integrate.elluciancloud.com` → Aplicaciones (tenant `ee114c5f…`),
+     búscala con el buscador ("Experience").
+   - Si hay varias, la correcta es la que tiene la misma clave de API que
+     aparece en Experience Setup para este ambiente.
+   - En esa aplicación, revisa que `x-docente-sesion`, `x-discapacidad-docente`
+     y `x-discapacidad-detalle` estén entre los recursos a los que tiene
+     acceso. Si no están, agrégalas.
 2. **API Designer**: las tres publicadas con *Autenticación del usuario*. El
    rol de la API (`SELFSERVICE-FACULTY`) tiene que estar asignado al docente en
    Banner.
