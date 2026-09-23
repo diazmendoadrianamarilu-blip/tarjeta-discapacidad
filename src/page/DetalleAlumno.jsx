@@ -1,95 +1,110 @@
-/* eslint-env browser */
 import React, { useCallback, useEffect, useState } from 'react';
-import { useData, useExtensionControl } from '@ellucian/experience-extension-utils';
+import { useHistory, useLocation } from 'react-router-dom';
+import { usePageControl } from '@ellucian/experience-extension-utils';
 
-import Encabezado from './Encabezado';
 import { C } from '../config';
-import { obtenerDetalleAlumno } from '../api/discapacidad';
+import { formatearFecha, obtenerDetalleAlumno } from '../api/discapacidad';
+import { useEthosFetch } from '../api/useEthosFetch';
+import {
+  Aviso, Encabezado, NotaLegal, Pagina, describirError, s,
+} from '../components/Estructura';
+import {
+  IconoCalendario, IconoCorreo, IconoPersona, IconoTelefono, IconoUbicacion,
+} from '../components/Iconos';
 
 const e = {
-  raiz: { background: C.fondo, minHeight: '100%' },
-  contenido: { padding: '2rem', maxWidth: 1100, margin: '0 auto' },
-  antetitulo: {
-    color: C.moradoTexto, fontSize: 12, fontWeight: 700,
-    letterSpacing: '0.09em', textTransform: 'uppercase', marginBottom: 6,
+  cabecera: { display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 32 },
+  iconoCabecera: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    background: C.azul50,
+    color: C.morado,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
-  filaTitulo: { display: 'flex', alignItems: 'flex-start', gap: 16 },
-  iconoPersona: {
-    width: 52, height: 52, borderRadius: 12, background: C.moradoSuave,
-    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  tarjeta: {
+    background: C.blanco,
+    border: `1px solid ${C.borde}`,
+    borderRadius: 12,
+    boxShadow: '0 1px 2px 0 rgba(0,0,0,.05)',
+    padding: '24px 0',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 24,
   },
-  titulo: { fontSize: 27, fontWeight: 700, color: C.texto, margin: 0 },
-  bajada: { color: C.textoSuave, fontSize: 14, marginTop: 6 },
-  ficha: {
-    background: C.blanco, border: `1px solid ${C.borde}`, borderRadius: 14,
-    padding: '1.75rem', marginTop: 24,
-  },
-  nombre: { fontSize: 21, fontWeight: 700, color: C.texto, margin: 0 },
-  sub: { color: C.textoSuave, fontSize: 14, marginTop: 4 },
+  tarjetaCabecera: { padding: '0 24px', display: 'flex', flexDirection: 'column', gap: 6 },
+  nombre: { margin: 0, fontSize: 20, lineHeight: '28px', fontWeight: 600, color: C.texto },
+  sub: { margin: 0, fontSize: 14, color: C.textoSuave },
   estado: {
-    display: 'inline-block', background: '#E9F7EF', color: '#1E7A4D',
-    borderRadius: 999, padding: '3px 12px', fontSize: 12, fontWeight: 600,
-    marginTop: 12,
+    marginTop: 8,
+    alignSelf: 'flex-start',
+    display: 'inline-flex',
+    alignItems: 'center',
+    borderRadius: 999,
+    border: '1px solid',
+    padding: '1px 8px',
+    fontSize: 12,
+    fontWeight: 500,
+    lineHeight: '18px',
   },
-  separador: { border: 0, borderTop: `1px solid ${C.borde}`, margin: '1.5rem 0' },
-  parrilla: {
-    display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-    gap: '1.25rem 2.5rem',
-  },
+  contenido: { padding: '0 24px', display: 'flex', flexDirection: 'column', gap: 24 },
+  separador: { height: 1, background: C.separador, border: 0, margin: 0 },
+  dosColumnas: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 20 },
+  tresColumnas: { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 16 },
   dato: { display: 'flex', alignItems: 'flex-start', gap: 12 },
-  iconoDato: {
-    width: 36, height: 36, borderRadius: 9, background: C.moradoSuave,
-    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  datoIcono: {
+    marginTop: 2,
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    background: C.gris100,
+    color: C.textoSuave,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
-  etiqueta: { color: C.textoSuave, fontSize: 12.5 },
-  valor: { fontWeight: 600, color: C.texto, fontSize: 14.5, marginTop: 2 },
-  cajas: {
-    display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-    gap: 16, marginTop: 4,
+  etiqueta: { margin: 0, fontSize: 12, fontWeight: 500, color: C.textoSuave },
+  valor: {
+    margin: '4px 0 0', fontSize: 14, fontWeight: 500, color: C.textoCuerpo, overflowWrap: 'anywhere',
   },
-  caja: {
-    background: '#F8F7FA', border: `1px solid ${C.borde}`, borderRadius: 10,
-    padding: '0.9rem 1rem',
+  sinDato: { fontWeight: 400, color: C.textoTenue },
+  caja: { background: C.gris50, borderRadius: 8, padding: 12 },
+  ajustes: {
+    background: C.azulFondo,
+    border: `1px solid ${C.azulBorde}`,
+    borderRadius: 12,
+    padding: 16,
   },
-  panel: {
-    background: C.moradoSuave, border: '1px solid #E3D6F2', borderRadius: 10,
-    padding: '1.25rem', marginTop: 20,
+  ajustesTitulo: {
+    margin: 0,
+    fontSize: 12,
+    fontWeight: 700,
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase',
+    color: C.moradoTexto,
   },
-  aviso: {
-    background: C.blanco, border: '1px dashed #D8D6DD', borderRadius: 12,
-    padding: '3rem 1.5rem', textAlign: 'center', color: C.textoSuave, marginTop: 24,
-  },
-  meta: { color: C.textoSuave, fontSize: 13 },
+  ajustesTexto: { margin: '8px 0 0', fontSize: 14, lineHeight: '24px', color: C.textoSecundario },
+  ajustesVigencia: { margin: '4px 0 0', fontSize: 12, color: C.textoSuave },
+  esqueleto: { background: '#E2E8F0', borderRadius: 6 },
 };
 
-function IconoPersona() {
-  return (
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="8" r="3.6" stroke={C.morado} strokeWidth="1.7" />
-      <path d="M4.8 20c.9-3.4 3.7-5.4 7.2-5.4s6.3 2 7.2 5.4"
-        stroke={C.morado} strokeWidth="1.7" strokeLinecap="round" />
-    </svg>
-  );
+function Valor({ valor }) {
+  return valor
+    ? <p style={e.valor}>{valor}</p>
+    : <p style={{ ...e.valor, ...e.sinDato }}>No registrado</p>;
 }
 
-function IconoEtiqueta() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect x="3.5" y="5" width="17" height="15" rx="2.5"
-        stroke={C.morado} strokeWidth="1.7" />
-      <path d="M3.5 9.5h17M8 3.5v3M16 3.5v3"
-        stroke={C.morado} strokeWidth="1.7" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function Dato({ etiqueta, valor }) {
+function Dato({ icono, etiqueta, valor }) {
   return (
     <div style={e.dato}>
-      <div style={e.iconoDato}><IconoEtiqueta /></div>
-      <div>
-        <div style={e.etiqueta}>{etiqueta}</div>
-        <div style={e.valor}>{valor || '—'}</div>
+      <div style={e.datoIcono}>{icono}</div>
+      <div style={{ minWidth: 0 }}>
+        <p style={e.etiqueta}>{etiqueta}</p>
+        <Valor valor={valor} />
       </div>
     </div>
   );
@@ -98,135 +113,181 @@ function Dato({ etiqueta, valor }) {
 function Caja({ etiqueta, valor }) {
   return (
     <div style={e.caja}>
-      <div style={e.etiqueta}>{etiqueta}</div>
-      <div style={e.valor}>{valor || '—'}</div>
+      <p style={{ ...e.etiqueta, fontWeight: 400 }}>{etiqueta}</p>
+      <Valor valor={valor} />
     </div>
   );
+}
+
+function FichaCargando({ resumen }) {
+  return (
+    <div style={e.tarjeta} aria-busy="true">
+      <div style={e.tarjetaCabecera}>
+        {resumen
+          ? <h2 style={e.nombre}>{resumen.nombreCompleto}</h2>
+          : <div className="bu-pulso" style={{ ...e.esqueleto, width: 260, height: 22 }} />}
+        <div className="bu-pulso" style={{ ...e.esqueleto, width: 220, height: 14, marginTop: 4 }} />
+      </div>
+      <div style={e.contenido}>
+        <hr style={e.separador} />
+        <div className="bu-pulso bu-dos-columnas" style={e.dosColumnas}>
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} style={e.dato}>
+              <div style={{ ...e.datoIcono, background: '#E2E8F0' }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ ...e.esqueleto, width: '45%', height: 10 }} />
+                <div style={{ ...e.esqueleto, width: '70%', height: 14, marginTop: 8 }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function vigencia(ficha) {
+  const desde = formatearFecha(ficha.vigenteDesde);
+  const hasta = formatearFecha(ficha.vigenteHasta);
+  if (desde && hasta) return `Vigencia: del ${desde} al ${hasta}`;
+  if (desde) return `Vigente desde el ${desde}`;
+  if (hasta) return `Vigente hasta el ${hasta}`;
+  return null;
 }
 
 export default function DetalleAlumno({ idAlumno, term }) {
-  const { getEthosQuery } = useData();
-  const { setPageTitle, navigateToPage } = useExtensionControl();
+  const authenticatedEthosFetch = useEthosFetch();
+  const { setPageTitle } = usePageControl();
+  const history = useHistory();
+  const location = useLocation();
+  const resumen = location.state && location.state.alumno;
 
-  const [cargando, setCargando] = useState(true);
+  const [estado, setEstado] = useState('cargando');
   const [error, setError] = useState(null);
-  const [alumno, setAlumno] = useState(null);
+  const [ficha, setFicha] = useState(null);
 
   const cargar = useCallback(async () => {
-    setCargando(true);
+    setEstado('cargando');
     setError(null);
     try {
-      const datos = await obtenerDetalleAlumno(
-        { idalumno: idAlumno, term }, { getEthosQuery },
-      );
-      if (!datos) setError('No se encontró el registro del estudiante.');
-      else setAlumno(datos);
+      const datos = await obtenerDetalleAlumno(authenticatedEthosFetch, { idalumno: idAlumno, term });
+      setFicha(datos);
+      setEstado(datos ? 'listo' : 'vacio');
     } catch (err) {
       console.error('[Bienestar]', err);
-      setError('No se pudo cargar la ficha del estudiante.');
-    } finally {
-      setCargando(false);
+      setError(err);
+      setEstado('error');
     }
-  }, [getEthosQuery, idAlumno, term]);
+  }, [authenticatedEthosFetch, idAlumno, term]);
 
   useEffect(() => {
-    if (setPageTitle) setPageTitle('Ficha detallada del estudiante');
+    if (setPageTitle) setPageTitle('Bienestar Universitario');
+  }, [setPageTitle]);
+
+  useEffect(() => {
     cargar();
-  }, [cargar, setPageTitle]);
+  }, [cargar]);
 
-  const volver = () => navigateToPage({ route: '/' });
-
-  const cuerpo = () => {
-    if (cargando) return <div style={e.aviso}>Cargando ficha…</div>;
-    if (error) {
-      return (
-        <div style={{ ...e.aviso, borderColor: '#E3B7B7', color: '#96302C' }}>
-          {error}
-        </div>
-      );
-    }
-
-    const nombre = `${alumno.nombres || ''} ${alumno.apellidos || ''}`.trim();
-    const vigencia = (alumno.vigenteDesde || alumno.vigenteHasta)
-      ? `${alumno.vigenteDesde || 'sin inicio'} — ${alumno.vigenteHasta || 'sin fin'}`
-      : 'Sin fechas registradas';
-    const periodo = alumno.periodoDiscapacidad || term;
-
-    return (
-      <div style={e.ficha}>
-        <h2 style={e.nombre}>{nombre}</h2>
-        <div style={e.sub}>
-          {alumno.carrera || alumno.codCarrera || 'Carrera no registrada'} · Periodo {periodo}
-        </div>
-        <span style={e.estado}>
-          {alumno.estadoAlumno === 'AS'
-            ? 'Registro activo'
-            : `Estado ${alumno.estadoAlumno || '—'}`}
-        </span>
-
-        <hr style={e.separador} />
-
-        <div style={e.parrilla}>
-          <Dato etiqueta="Código del alumno" valor={alumno.idAlumno} />
-          <Dato etiqueta="Programa de estudios" valor={alumno.programa} />
-          <Dato etiqueta="Nivel" valor={alumno.nivel} />
-          <Dato etiqueta="Campus" valor={alumno.campus} />
-          <Dato etiqueta="Tipo de alumno" valor={alumno.tipoAlumno} />
-          <Dato etiqueta="Vigencia del registro" valor={vigencia} />
-        </div>
-
-        <hr style={e.separador} />
-
-        <div style={e.cajas}>
-          <Caja etiqueta="Carrera" valor={alumno.carrera} />
-          <Caja etiqueta="Periodo" valor={periodo} />
-          <Caja etiqueta="Tipo de discapacidad" valor={alumno.tipoDiscapacidad} />
-        </div>
-
-        <div style={e.panel}>
-          <div style={{ ...e.antetitulo, marginBottom: 8 }}>Ajustes razonables</div>
-          <div style={{ color: '#3E3A45', fontSize: 14.5 }}>
-            No hay ajustes registrados para este estudiante.
-          </div>
-          <div style={{ ...e.meta, marginTop: 8, fontSize: 12 }}>
-            Se registran en el bloque <strong>Disability Services</strong> de
-            SGADISA (tabla SGRDSER), que hoy está vacío en este ambiente.
-          </div>
-        </div>
-      </div>
-    );
+  const volver = () => {
+    if (history.length > 1 && resumen) history.goBack();
+    else history.push('/');
   };
 
-  return (
-    <div style={e.raiz}>
-      <Encabezado
-        subtitulo="Ficha detallada del estudiante"
-        textoVolver="Volver a alumnos"
-        alVolver={volver}
+  let cuerpo;
+  if (estado === 'cargando') {
+    cuerpo = <FichaCargando resumen={resumen} />;
+  } else if (estado === 'error') {
+    cuerpo = (
+      <Aviso
+        tono="error"
+        titulo="No pudimos cargar la ficha del estudiante"
+        texto="Intenta nuevamente en unos segundos."
+        accion={cargar}
+        textoAccion="Reintentar"
+        detalle={describirError(error)}
       />
+    );
+  } else if (estado === 'vacio') {
+    cuerpo = (
+      <Aviso
+        titulo="No encontramos el registro del estudiante"
+        texto={`El código ${idAlumno} no tiene una discapacidad registrada en SGADISA para el periodo ${term}.`}
+      />
+    );
+  } else {
+    const carrera = ficha.carrera || (resumen && resumen.carrera) || null;
+    const tipos = ficha.discapacidades.map((d) => d.descripcion).join(', ');
+    const textoVigencia = vigencia(ficha);
+    const colorEstado = ficha.vigente
+      ? { background: C.activoFondo, borderColor: C.activoBorde, color: C.activoTexto }
+      : { background: '#FFFBEB', borderColor: '#FDE68A', color: '#B45309' };
 
-      <div style={e.contenido}>
-        <div style={e.filaTitulo}>
-          <div style={e.iconoPersona}><IconoPersona /></div>
+    cuerpo = (
+      <section style={e.tarjeta} aria-label={`Ficha de ${ficha.nombreCompleto}`}>
+        <div style={e.tarjetaCabecera}>
+          <h2 style={e.nombre}>{ficha.nombreCompleto}</h2>
+          <p style={e.sub}>
+            {carrera || 'Carrera no registrada'} · Periodo {ficha.periodo}
+          </p>
+          <span style={{ ...e.estado, ...colorEstado }}>
+            {ficha.vigente ? 'Registro activo' : 'Registro vencido'}
+          </span>
+        </div>
+
+        <div style={e.contenido}>
+          <hr style={e.separador} />
+          <div className="bu-dos-columnas" style={e.dosColumnas}>
+            <Dato
+              icono={<IconoCalendario tamano={16} />}
+              etiqueta="Fecha de nacimiento"
+              valor={formatearFecha(ficha.fechaNacimiento)}
+            />
+            <Dato icono={<IconoCorreo tamano={16} />} etiqueta="Correo institucional" valor={ficha.correo} />
+            <Dato icono={<IconoTelefono tamano={16} />} etiqueta="Teléfono de contacto" valor={ficha.telefono} />
+            <Dato icono={<IconoUbicacion tamano={16} />} etiqueta="Dirección registrada" valor={ficha.direccion} />
+          </div>
+
+          <hr style={e.separador} />
+          <div className="bu-tres-columnas" style={e.tresColumnas}>
+            <Caja etiqueta="Carrera" valor={carrera} />
+            <Caja etiqueta="Periodo" valor={ficha.periodo} />
+            <Caja etiqueta="Tipo de discapacidad" valor={tipos} />
+          </div>
+
+          <div style={e.ajustes}>
+            <p style={e.ajustesTitulo}>Ajustes razonables</p>
+            <p style={e.ajustesTexto}>
+              {ficha.ajustes.length > 0
+                ? ficha.ajustes.join(', ')
+                : 'No hay ajustes razonables registrados en SGADISA para este estudiante.'}
+            </p>
+            {textoVigencia && <p style={e.ajustesVigencia}>{textoVigencia}</p>}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <Pagina>
+      <Encabezado subtitulo="Ficha detallada del estudiante" textoVolver="Volver a alumnos" alVolver={volver} />
+
+      <main className="bu-contenedor" style={s.contenedor}>
+        <div style={e.cabecera}>
+          <div style={e.iconoCabecera}><IconoPersona tamano={28} /></div>
           <div>
-            <div style={e.antetitulo}>
-              Ficha del estudiante{alumno ? ` · ${alumno.idAlumno}` : ''}
-            </div>
-            <h1 style={e.titulo}>Detalle del estudiante</h1>
-            <div style={e.bajada}>
+            <p style={s.antetitulo}>Ficha del estudiante · {idAlumno}</p>
+            <h1 style={s.titulo}>Detalle del estudiante</h1>
+            <p style={s.bajada}>
               Información registrada y vigencia de los ajustes razonables autorizados.
-            </div>
+            </p>
           </div>
         </div>
 
-        {cuerpo()}
+        {cuerpo}
 
-        <div style={{ ...e.meta, marginTop: 28, fontSize: 12 }}>
-          Dato sensible (Ley 29733). Úselo únicamente para aplicar los ajustes
-          razonables que correspondan y no lo difunda.
-        </div>
-      </div>
-    </div>
+        <NotaLegal />
+      </main>
+    </Pagina>
   );
 }
- 

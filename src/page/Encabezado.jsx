@@ -79,4 +79,3 @@ export default function Encabezado({ subtitulo, textoVolver, alVolver }) {
     </div>
   );
 }
- 
