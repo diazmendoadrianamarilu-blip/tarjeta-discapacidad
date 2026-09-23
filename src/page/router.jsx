@@ -3,11 +3,12 @@ import { BrowserRouter as Router, Route, Switch, useParams, useLocation } from '
 
 import Home from './Home';
 import DetalleAlumno from './DetalleAlumno';
+import { PERIODO } from '../config';
 
 function DetalleDesdeRuta(props) {
     const { idAlumno } = useParams();
     const location = useLocation();
-    const term = (location.state && location.state.term) || '202646';
+    const term = (location.state && location.state.term) || PERIODO;
 
     return <DetalleAlumno idAlumno={idAlumno} term={term} {...props} />;
 }

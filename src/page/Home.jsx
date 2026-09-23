@@ -1,258 +1,342 @@
+/* eslint-env browser */
 import React, { useCallback, useEffect, useState } from 'react';
-import { Typography, Button, CircularProgress } from '@ellucian/react-design-system/core';
-// 1. Importamos useUserInfo para detectar tu sesión real
-import { useData, useExtensionControl, useUserInfo } from '@ellucian/experience-extension-utils';
+import {
+  useData,
+  useExtensionControl,
+  useUserInfo,
+} from '@ellucian/experience-extension-utils';
 
+import Encabezado from './Encabezado';
+import { C, PERIODO, MOSTRAR_DIAGNOSTICO } from '../config';
+import { resolverDocente } from '../api/identidad';
 import {
   listarAlumnosDelDocente,
   mapaCursosDelDocente,
   descargarReporte,
   iniciales,
-  obtenerPidm // 2. Importamos la función para traducir tu ID a PIDM
 } from '../api/discapacidad';
 
-const PERIODO_POR_DEFECTO = '202646';
-const GRIS_TEXTO = '#6B7280';
-
+/* Color del chip según el código de STVDISA en USS. */
 const COLOR_CHIP = {
-  MO: { fondo: '#EAF1FF', texto: '#1F5FCC' },
-  FI: { fondo: '#EAF1FF', texto: '#1F5FCC' },
-  VI: { fondo: '#F3EEFF', texto: '#6B3FD4' },
-  AU: { fondo: '#FFF6E5', texto: '#B57400' },
-  IN: { fondo: '#FDECEC', texto: '#C0392B' },
-  SE: { fondo: '#EAF7F0', texto: '#1E7A4D' },
-  TE: { fondo: '#EAF7F0', texto: '#1E7A4D' },
-  DP: { fondo: '#F1F2F4', texto: '#4B5563' },
+  MO: { fondo: '#E8F0FE', texto: '#1A56C4' }, // Motora
+  FI: { fondo: '#E8F0FE', texto: '#1A56C4' }, // Física
+  VI: { fondo: '#F3EAFE', texto: '#7029C0' }, // Visual
+  AU: { fondo: '#FFF4E0', texto: '#B26A00' }, // Auditiva
+  IN: { fondo: '#FDE9E9', texto: '#C0392B' }, // Intelectual
+  SE: { fondo: '#E6F6EE', texto: '#1E7A4D' }, // Sensorial
+  TE: { fondo: '#E6F6EE', texto: '#1E7A4D' }, // Espectro autista
+  DP: { fondo: '#EFEFF2', texto: '#55555F' }, // Diagnóstico pendiente
 };
-const CHIP_NEUTRO = { fondo: '#F1F2F4', texto: '#4B5563' };
+const CHIP_NEUTRO = { fondo: '#EFEFF2', texto: '#55555F' };
 
 const e = {
-  pagina: { background: '#F7F8FA', minHeight: '100%', padding: '2rem' },
+  raiz: { background: C.fondo, minHeight: '100%' },
+  contenido: { padding: '2rem', maxWidth: 1100, margin: '0 auto' },
   antetitulo: {
-    color: '#2A7DA8', fontSize: 12, fontWeight: 700,
-    letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4,
+    color: C.moradoTexto, fontSize: 12, fontWeight: 700,
+    letterSpacing: '0.09em', textTransform: 'uppercase', marginBottom: 6,
   },
-  titulo: { fontWeight: 700, color: '#101828' },
-  encabezado: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 },
+  encabezado: {
+    display: 'flex', justifyContent: 'space-between',
+    alignItems: 'flex-start', gap: 20, flexWrap: 'wrap',
+  },
+  titulo: { fontSize: 27, fontWeight: 700, color: C.texto, margin: 0 },
+  bajada: { color: C.textoSuave, fontSize: 14, marginTop: 6 },
   contador: {
-    background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: 10,
-    padding: '0.9rem 1.25rem', display: 'flex', alignItems: 'center', gap: 14,
+    background: C.blanco, border: `1px solid ${C.borde}`, borderRadius: 12,
+    padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', gap: 18,
     whiteSpace: 'nowrap',
   },
   fila: {
-    background: '#FFFFFF', border: '1px solid #E9EBEF', borderRadius: 12,
+    background: C.blanco, border: `1px solid ${C.borde}`, borderRadius: 12,
     padding: '1rem 1.25rem', marginBottom: 12, display: 'flex',
-    alignItems: 'center', gap: 16, cursor: 'pointer', textAlign: 'left',
-    width: '100%',
+    alignItems: 'center', gap: 16, cursor: 'pointer', width: '100%',
+    textAlign: 'left',
   },
   avatar: {
-    width: 44, height: 44, borderRadius: '50%', background: '#EEF1F5',
-    color: '#5B6470', fontWeight: 700, fontSize: 13, flexShrink: 0,
+    width: 44, height: 44, borderRadius: '50%', background: '#EEEDF1',
+    color: '#5B5B66', fontWeight: 700, fontSize: 13, flexShrink: 0,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
   chip: {
     display: 'inline-block', borderRadius: 999, padding: '2px 10px',
-    fontSize: 12, fontWeight: 600, marginLeft: 10,
+    fontSize: 12, fontWeight: 600, marginLeft: 10, verticalAlign: 'middle',
   },
-  meta: { color: GRIS_TEXTO, fontSize: 13, marginTop: 2 },
+  meta: { color: C.textoSuave, fontSize: 13.5, marginTop: 3 },
+  iconoFila: {
+    width: 34, height: 34, borderRadius: 8, background: '#F3F2F5',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
   reporte: {
-    background: '#EFF8F3', border: '1px solid #D6EADF', borderRadius: 12,
-    padding: '1.25rem', display: 'flex', justifyContent: 'space-between',
-    alignItems: 'center', gap: 16, marginTop: 24,
+    background: C.verdeSuave, border: `1px solid ${C.verdeBorde}`, borderRadius: 12,
+    padding: '1.25rem 1.5rem', display: 'flex', justifyContent: 'space-between',
+    alignItems: 'center', gap: 16, marginTop: 24, flexWrap: 'wrap',
   },
-  vacio: {
-    background: '#FFFFFF', border: '1px dashed #D8DCE3', borderRadius: 12,
-    padding: '3rem 1.5rem', textAlign: 'center', color: GRIS_TEXTO,
+  botonVerde: {
+    background: C.verde, color: C.blanco, border: 0, borderRadius: 8,
+    padding: '0.7rem 1.1rem', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+    display: 'flex', alignItems: 'center', gap: 8,
+  },
+  aviso: {
+    background: C.blanco, border: `1px dashed #D8D6DD`, borderRadius: 12,
+    padding: '3rem 1.5rem', textAlign: 'center', color: C.textoSuave,
+    marginTop: 24,
+  },
+  diag: {
+    background: '#FFFBEA', border: '1px solid #F0DFA8', borderRadius: 12,
+    padding: '1.25rem 1.5rem', marginTop: 24, textAlign: 'left',
+    fontSize: 13, color: '#6B5A16',
+  },
+  codigo: {
+    display: 'block', background: '#FFFFFF', border: '1px solid #EDE6CC',
+    borderRadius: 8, padding: '0.75rem', marginTop: 8, fontSize: 12,
+    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+    whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: '#4A4A52',
   },
 };
 
 function Chip({ codigo, texto }) {
   const c = COLOR_CHIP[codigo] || CHIP_NEUTRO;
+  return <span style={{ ...e.chip, background: c.fondo, color: c.texto }}>{texto}</span>;
+}
+
+function IconoAccesibilidad() {
   return (
-    <span style={{ ...e.chip, background: c.fondo, color: c.texto }}>{texto}</span>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="4.2" r="1.9" fill="#6B6B76" />
+      <path
+        d="M5.5 8.2c2.2.7 4.3 1.1 6.5 1.1s4.3-.4 6.5-1.1M12 9.3v5m0 0 3.3 5.4M12 14.3l-3.3 5.4"
+        stroke="#6B6B76"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function IconoDescarga() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M12 3.5v11m0 0 4-4m-4 4-4-4M4.5 18.5h15"
+        stroke="#FFFFFF" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
 export default function Home() {
-  const { getEthosQuery } = useData();
+  const { getEthosQuery, getExtensionJwt } = useData();
   const { setPageTitle, navigateToPage } = useExtensionControl();
-  
-  // Extraemos la información de tu sesión actual
-  const userInfo = useUserInfo(); 
+  const userInfo = useUserInfo();
 
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
+  const [diagnostico, setDiagnostico] = useState(null);
   const [alumnos, setAlumnos] = useState([]);
 
-  const term = PERIODO_POR_DEFECTO;
+  const term = PERIODO;
 
   const cargar = useCallback(async () => {
     setCargando(true);
     setError(null);
+    setDiagnostico(null);
+
     try {
       const ctx = { getEthosQuery };
-      
-      // 3. Capturamos tu ID de Banner (varía ligeramente según la configuración de USS)
-      const bannerId = userInfo?.bannerId || userInfo?.accountId;
-      if (!bannerId) {
-          throw new Error("No se pudo identificar tu usuario (Banner ID) en esta sesión.");
+
+      const docente = await resolverDocente({ userInfo, getExtensionJwt, getEthosQuery });
+      console.info('[Bienestar] identidad del docente:', docente);
+
+      if (!docente.pidm) {
+        setDiagnostico(docente.diagnostico);
+        throw new Error(
+          'No fue posible identificar al docente en esta sesión. Revisa el detalle de abajo.',
+        );
       }
 
-      // 4. Traducimos tu ID de Banner a tu PIDM interno
-      const pidmReal = await obtenerPidm({ idpersona: bannerId }, ctx);
-      if (!pidmReal) {
-          throw new Error(`No se encontró un PIDM asociado al usuario ${bannerId}.`);
-      }
+      const lista = await listarAlumnosDelDocente(
+        { pidmdocente: docente.pidm, term }, ctx,
+      );
 
-      // 5. Ahora sí, buscamos a TUS estudiantes usando tu PIDM real
-      const lista = await listarAlumnosDelDocente({ pidmdocente: pidmReal, term }, ctx);
-
-      // 6. Completamos los nombres de los cursos
-      let cursos = {};
-      try {
-        cursos = await mapaCursosDelDocente({ iddocente: bannerId, term }, ctx);
-      } catch (errCursos) {
-        console.warn('No se pudo resolver el nombre de los cursos:', errCursos);
+      // El nombre del curso no viene en la API del listado: se completa aquí.
+      if (docente.bannerId) {
+        try {
+          const cursos = await mapaCursosDelDocente(
+            { iddocente: docente.bannerId, term }, ctx,
+          );
+          lista.forEach((a) => {
+            a.secciones.forEach((s) => { s.curso = cursos[s.nrc] || s.curso; });
+          });
+        } catch (errCursos) {
+          console.warn('[Bienestar] no se resolvió el nombre de los cursos:', errCursos);
+        }
       }
-      
-      lista.forEach((a) => {
-        a.secciones.forEach((s) => { s.curso = cursos[s.nrc] || s.curso; });
-      });
 
       setAlumnos(lista);
     } catch (err) {
-      console.error(err);
-      setError(err.message || 'Ocurrió un error de conexión con la base de datos.');
+      console.error('[Bienestar]', err);
+      setError(err.message || 'Ocurrió un error al consultar la información.');
     } finally {
       setCargando(false);
     }
-  }, [getEthosQuery, userInfo, term]);
+  }, [getEthosQuery, getExtensionJwt, userInfo, term]);
 
   useEffect(() => {
     if (setPageTitle) setPageTitle('Tablero de ajustes razonables');
-    // Esperamos a que la información del usuario cargue antes de ejecutar la consulta
-    if (userInfo) {
-        cargar();
-    }
-  }, [cargar, setPageTitle, userInfo]);
+    cargar();
+  }, [cargar, setPageTitle]);
 
   const abrirFicha = (idAlumno) => {
     navigateToPage({ route: `/alumno/${idAlumno}`, state: { term } });
   };
 
-  if (cargando || !userInfo) {
-    return (
-      <div style={{ ...e.pagina, display: 'flex', justifyContent: 'center', paddingTop: '4rem' }}>
-        <CircularProgress />
-      </div>
-    );
-  }
-
   return (
-    <div style={e.pagina}>
-      <div style={e.encabezado}>
-        <div>
-          <div style={e.antetitulo}>Panel administrativo</div>
-          <Typography variant="h2" style={e.titulo}>
-            Alumnos con Discapacidad Registrada
-          </Typography>
-          <Typography style={e.meta}>
-            Estudiantes con discapacidad registrada en SGADISA, matriculados en
-            las secciones que usted dicta en el periodo {term}.
-          </Typography>
+    <div style={e.raiz}>
+      <Encabezado
+        subtitulo="Tablero de ajustes razonables"
+        textoVolver="Inicio"
+        alVolver={() => window.history.back()}
+      />
+
+      <div style={e.contenido}>
+        <div style={e.encabezado}>
+          <div>
+            <div style={e.antetitulo}>Panel institucional</div>
+            <h1 style={e.titulo}>Alumnos con Discapacidad Registrada</h1>
+            <div style={e.bajada}>
+              Consulta los estudiantes asignados a tus cursos y gestiona sus
+              ajustes razonables.
+            </div>
+          </div>
+
+          <div style={e.contador}>
+            <span style={{ color: C.textoSuave, fontSize: 13.5 }}>Total registrados</span>
+            <span style={{ fontSize: 24, fontWeight: 700, color: C.texto }}>
+              {cargando ? '—' : alumnos.length}
+            </span>
+          </div>
         </div>
 
-        <div style={e.contador}>
-          <span style={{ color: GRIS_TEXTO, fontSize: 13 }}>Total registrados</span>
-          <span style={{ fontSize: 22, fontWeight: 700, color: '#101828' }}>
-            {alumnos.length}
-          </span>
+        {cargando && (
+          <div style={e.aviso}>Cargando estudiantes…</div>
+        )}
+
+        {!cargando && error && (
+          <div style={{ ...e.aviso, borderColor: '#E3B7B7', color: '#96302C' }}>
+            {error}
+            <div style={{ marginTop: 14 }}>
+              <button
+                type="button"
+                style={{ ...e.botonVerde, background: C.morado, margin: '0 auto' }}
+                onClick={cargar}
+              >
+                Reintentar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!cargando && diagnostico && MOSTRAR_DIAGNOSTICO && (
+          <div style={e.diag}>
+            <strong>Diagnóstico de identidad</strong>
+            <div style={{ marginTop: 6 }}>
+              Esto muestra qué expone el SDK en esta sesión, para saber de dónde
+              tomar el código del docente. Cuando sepamos el campo correcto, se
+              agrega a <code>CLAVES_BANNER_ID</code> en <code>src/api/identidad.js</code>.
+            </div>
+            <code style={e.codigo}>
+              {`useUserInfo() → ${JSON.stringify(diagnostico.clavesUserInfo)}
+JWT extensión → ${JSON.stringify(diagnostico.clavesJwt)}
+Notas → ${diagnostico.notas.length ? diagnostico.notas.join(' | ') : 'ninguna'}`}
+            </code>
+            <div style={{ marginTop: 10 }}>
+              Mientras tanto, pon tu PIDM en <code>DOCENTE_RESPALDO.pidm</code> dentro
+              de <code>src/config.js</code> y la pantalla funciona igual.
+            </div>
+          </div>
+        )}
+
+        {!cargando && !error && alumnos.length === 0 && (
+          <div style={e.aviso}>
+            No hay estudiantes con discapacidad registrada en tus secciones para
+            el periodo {term}.
+          </div>
+        )}
+
+        {!cargando && !error && alumnos.length > 0 && (
+          <div style={{ marginTop: 24 }}>
+            {alumnos.map((a) => {
+              const principal = a.discapacidades[0];
+              const seccion = a.secciones[0];
+              const curso = seccion
+                ? (seccion.curso || `${seccion.codMateria} ${seccion.numCurso}`)
+                : 'Sin sección asignada';
+              const extra = a.secciones.length > 1
+                ? ` · ${a.secciones.length} secciones`
+                : (seccion ? ` · NRC ${seccion.nrc}` : '');
+
+              return (
+                <div
+                  key={a.idAlumno}
+                  role="button"
+                  tabIndex={0}
+                  style={e.fila}
+                  onClick={() => abrirFicha(a.idAlumno)}
+                  onKeyDown={(ev) => { if (ev.key === 'Enter') abrirFicha(a.idAlumno); }}
+                >
+                  <div style={e.avatar}>{iniciales(a.nombres, a.apellidos)}</div>
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div>
+                      <span style={{ fontWeight: 600, color: C.texto, fontSize: 15 }}>
+                        {a.nombreCompleto}
+                      </span>
+                      {principal && (
+                        <Chip codigo={principal.codigo} texto={principal.descripcion} />
+                      )}
+                      {a.discapacidades.length > 1 && (
+                        <Chip codigo="" texto={`+${a.discapacidades.length - 1}`} />
+                      )}
+                    </div>
+                    <div style={e.meta}>
+                      {curso}{extra} &nbsp;·&nbsp; Periodo {a.periodo || term}
+                    </div>
+                  </div>
+
+                  <div style={e.iconoFila}><IconoAccesibilidad /></div>
+                  <span style={{ color: '#A9A7B0', fontSize: 20 }}>&rsaquo;</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {!cargando && !error && alumnos.length > 0 && (
+          <div style={e.reporte}>
+            <div>
+              <div style={{ fontWeight: 600, color: C.texto, fontSize: 15 }}>
+                Reporte de estudiantes registrados
+              </div>
+              <div style={{ ...e.meta, marginTop: 4 }}>
+                Exporta la información para análisis y seguimiento institucional.
+              </div>
+            </div>
+            <button
+              type="button"
+              style={e.botonVerde}
+              onClick={() => descargarReporte(alumnos, term)}
+            >
+              <IconoDescarga /> Descargar reporte
+            </button>
+          </div>
+        )}
+
+        <div style={{ ...e.meta, marginTop: 28, fontSize: 12 }}>
+          Dato sensible (Ley 29733). Úselo únicamente para aplicar los ajustes
+          razonables que correspondan y no lo difunda.
         </div>
       </div>
-
-      {error && (
-        <div style={{ ...e.vacio, marginTop: 24, borderColor: '#E7B2B2', color: '#9B2C2C' }}>
-          {error}
-          <div style={{ marginTop: 12 }}>
-            <Button color="secondary" onClick={cargar}>Reintentar</Button>
-          </div>
-        </div>
-      )}
-
-      {!error && alumnos.length === 0 && (
-        <div style={{ ...e.vacio, marginTop: 24 }}>
-          No hay estudiantes con discapacidad registrada en sus secciones para el
-          periodo {term}.
-        </div>
-      )}
-
-      {!error && alumnos.length > 0 && (
-        <div style={{ marginTop: 24 }}>
-          {alumnos.map((a) => {
-            const principal = a.discapacidades[0];
-            const seccion = a.secciones[0];
-            const curso = seccion
-              ? (seccion.curso || `${seccion.codMateria} ${seccion.numCurso}`)
-              : '';
-            const masNrc = a.secciones.length > 1
-              ? ` · ${a.secciones.length} secciones`
-              : (seccion ? ` · NRC ${seccion.nrc}` : '');
-
-            return (
-              <div
-                key={a.idAlumno}
-                role="button"
-                tabIndex={0}
-                style={e.fila}
-                onClick={() => abrirFicha(a.idAlumno)}
-                onKeyDown={(ev) => { if (ev.key === 'Enter') abrirFicha(a.idAlumno); }}
-              >
-                <div style={e.avatar}>{iniciales(a.nombres, a.apellidos)}</div>
-
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div>
-                    <span style={{ fontWeight: 600, color: '#101828' }}>
-                      {a.nombreCompleto}
-                    </span>
-                    {principal && (
-                      <Chip codigo={principal.codigo} texto={principal.descripcion} />
-                    )}
-                    {a.discapacidades.length > 1 && (
-                      <Chip codigo="" texto={`+${a.discapacidades.length - 1}`} />
-                    )}
-                  </div>
-                  <div style={e.meta}>
-                    {curso}{masNrc} · Periodo {a.periodo || term}
-                  </div>
-                </div>
-
-                <span style={{ color: '#9AA3AF', fontSize: 20 }}>&rsaquo;</span>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {!error && alumnos.length > 0 && (
-        <div style={e.reporte}>
-          <div>
-            <div style={{ fontWeight: 600, color: '#101828' }}>
-              Reporte de estudiantes registrados
-            </div>
-            <div style={{ ...e.meta, marginTop: 4 }}>
-              Exporta la información para análisis y seguimiento institucional.
-            </div>
-          </div>
-          <Button color="primary" onClick={() => descargarReporte(alumnos, term)}>
-            Descargar reporte
-          </Button>
-        </div>
-      )}
-
-      <Typography style={{ ...e.meta, marginTop: 24, fontSize: 12 }}>
-        Dato sensible (Ley 29733). Úselo únicamente para aplicar los ajustes
-        razonables que correspondan y no lo difunda.
-      </Typography>
     </div>
   );
 }
