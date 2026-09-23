@@ -229,3 +229,4 @@ export default function DetalleAlumno({ idAlumno, term }) {
     </div>
   );
 }
+ 

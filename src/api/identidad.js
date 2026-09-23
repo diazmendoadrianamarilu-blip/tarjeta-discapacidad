@@ -1,4 +1,3 @@
-/* eslint-env browser */
 /**
  * Resolución de la identidad del docente logueado.
  *
@@ -61,7 +60,7 @@ export function leerPayloadJwt(jwt) {
     const base64 = partes[1].replace(/-/g, '+').replace(/_/g, '/');
     const relleno = base64 + '==='.slice((base64.length + 3) % 4);
     const texto = decodeURIComponent(
-      atob(relleno)
+      window.atob(relleno)
         .split('')
         .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
         .join(''),

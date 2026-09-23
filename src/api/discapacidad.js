@@ -6,7 +6,7 @@ async function ejecutar(recurso, params, ctx) {
     throw new Error('No hay funcion de consulta disponible. Revisa api/discapacidad.js');
   }
   
-  // CORRECCIÓN CLAVE AQUÍ: getEthosQuery exige un único objeto como argumento
+
   const respuesta = await getEthosQuery({
     queryId: recurso,
     searchParameters: params

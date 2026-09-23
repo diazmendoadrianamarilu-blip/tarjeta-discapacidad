@@ -340,3 +340,4 @@ Notas → ${diagnostico.notas.length ? diagnostico.notas.join(' | ') : 'ninguna'
     </div>
   );
 }
+ 
