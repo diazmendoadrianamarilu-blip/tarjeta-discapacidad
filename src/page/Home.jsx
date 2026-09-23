@@ -134,6 +134,7 @@ export default function Home() {
   const [error, setError] = useState(null);
   const [diagnostico, setDiagnostico] = useState(null);
   const [alumnos, setAlumnos] = useState([]);
+  const [docente, setDocente] = useState(null);
 
   const term = PERIODO;
 
@@ -141,29 +142,31 @@ export default function Home() {
     setCargando(true);
     setError(null);
     setDiagnostico(null);
+    setDocente(null);
 
     try {
       const ctx = { getEthosQuery };
 
-      const docente = await resolverDocente({ userInfo, getExtensionJwt, getEthosQuery });
-      console.info('[Bienestar] identidad del docente:', docente);
+      const sesion = await resolverDocente({ userInfo, getExtensionJwt, getEthosQuery });
+      console.info('[Bienestar] identidad del docente:', sesion);
+      setDocente(sesion);
 
-      if (!docente.pidm) {
-        setDiagnostico(docente.diagnostico);
+      if (!sesion.pidm) {
+        setDiagnostico(sesion.diagnostico);
         throw new Error(
           'No fue posible identificar al docente en esta sesión. Revisa el detalle de abajo.',
         );
       }
 
       const lista = await listarAlumnosDelDocente(
-        { pidmdocente: docente.pidm, term }, ctx,
+        { pidmdocente: sesion.pidm, term }, ctx,
       );
 
       // El nombre del curso no viene en la API del listado: se completa aquí.
-      if (docente.bannerId) {
+      if (sesion.bannerId) {
         try {
           const cursos = await mapaCursosDelDocente(
-            { iddocente: docente.bannerId, term }, ctx,
+            { iddocente: sesion.bannerId, term }, ctx,
           );
           lista.forEach((a) => {
             a.secciones.forEach((s) => { s.curso = cursos[s.nrc] || s.curso; });
@@ -207,6 +210,9 @@ export default function Home() {
             <div style={e.bajada}>
               Consulta los estudiantes asignados a tus cursos y gestiona sus
               ajustes razonables.
+              {docente && docente.nombre && (
+                <span> Sesión de <strong>{docente.nombre}</strong>.</span>
+              )}
             </div>
           </div>
 
@@ -241,19 +247,18 @@ export default function Home() {
           <div style={e.diag}>
             <strong>Diagnóstico de identidad</strong>
             <div style={{ marginTop: 6 }}>
-              Esto muestra qué expone el SDK en esta sesión, para saber de dónde
-              tomar el código del docente. Cuando sepamos el campo correcto, se
-              agrega a <code>CLAVES_BANNER_ID</code> en <code>src/api/identidad.js</code>.
+              La identificación la resuelve Banner: la API <code>x-docente-sesion</code>
+              {' '}filtra <code>SPRIDEN_PIDM = SECURITY_PRINCIPAL_ID</code> con el usuario
+              autenticado. Si no devuelve fila, revisa que la API esté publicada, que
+              tenga marcada la <em>Autenticación del usuario</em> con el rol
+              {' '}<code>FACULTY</code> y que ese rol esté asignado a tu usuario.
             </div>
             <code style={e.codigo}>
-              {`useUserInfo() → ${JSON.stringify(diagnostico.clavesUserInfo)}
-JWT extensión → ${JSON.stringify(diagnostico.clavesJwt)}
+              {`Resuelto en → ${diagnostico.encontradoEn || 'ningún origen'}
+useUserInfo() → ${(diagnostico.camposUserInfo || []).join(' | ') || 'sin campos'}
+JWT extensión → ${(diagnostico.camposJwt || []).join(' | ') || 'sin campos'}
 Notas → ${diagnostico.notas.length ? diagnostico.notas.join(' | ') : 'ninguna'}`}
             </code>
-            <div style={{ marginTop: 10 }}>
-              Mientras tanto, pon tu PIDM en <code>DOCENTE_RESPALDO.pidm</code> dentro
-              de <code>src/config.js</code> y la pantalla funciona igual.
-            </div>
           </div>
         )}
 

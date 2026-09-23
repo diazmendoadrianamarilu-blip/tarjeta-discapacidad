@@ -15,15 +15,11 @@ module.exports = {
     page: {
         source: './src/page/router.jsx',
     },
-    // BLOQUE CRÍTICO DE SEGURIDAD:
-    // Autoriza a la extensión a consumir tus APIs creadas en Integration Designer
     ethos: {
         queries: [
-            { queryId: 'x-discapacidad-docente', resource: 'x-discapacidad-docente' },
-            { queryId: 'x-discapacidad-detalle', resource: 'x-discapacidad-detalle' },
-            { queryId: 'x-asignacion-docente', resource: 'x-asignacion-docente' },
-            { queryId: 'x-persona-pidm', resource: 'x-persona-pidm' }
+            { queryId: 'x-discapacidad-docente', resource: 'x-discapacidad-docente', version: '1.1.0' },
+            { queryId: 'x-discapacidad-detalle', resource: 'x-discapacidad-detalle', version: '1.0.0' },
+            { queryId: 'x-asignacion-docente', resource: 'x-asignacion-docente', version: '1.0.0' }
         ]
     }
 };
-

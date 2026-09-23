@@ -5,12 +5,15 @@ async function ejecutar(recurso, params, ctx) {
   if (!getEthosQuery) {
     throw new Error('No hay funcion de consulta disponible. Revisa api/discapacidad.js');
   }
-  
 
-  const respuesta = await getEthosQuery({
-    queryId: recurso,
-    searchParameters: params
-  });
+  const opciones = { queryId: recurso };
+  
+  // Enviamos los parámetros originales sin alterar su tipo.
+  if (params && Object.keys(params).length > 0) {
+    opciones.searchParameters = params;
+  }
+
+  const respuesta = await getEthosQuery(opciones);
   
   if (Array.isArray(respuesta)) return respuesta;
   if (respuesta && Array.isArray(respuesta.data)) return respuesta.data;
@@ -18,18 +21,14 @@ async function ejecutar(recurso, params, ctx) {
 }
 
 export async function listarAlumnosDelDocente({ pidmdocente, term }, ctx) {
-  const filas = await ejecutar('x-discapacidad-docente', { pidmdocente, term }, ctx);
+  // Aseguramos que el PIDM viaje como NÚMERO, tal como lo exige API Designer
+  const filas = await ejecutar('x-discapacidad-docente', { pidmdocente: Number(pidmdocente), term }, ctx);
   return agruparPorAlumno(filas);
 }
 
 export async function obtenerDetalleAlumno({ idalumno, term }, ctx) {
   const filas = await ejecutar('x-discapacidad-detalle', { idalumno, term }, ctx);
   return filas[0] || null;
-}
-
-export async function obtenerPidm({ idpersona }, ctx) {
-  const filas = await ejecutar('x-persona-pidm', { idpersona }, ctx);
-  return filas[0] ? filas[0].pidm : null;
 }
 
 export async function mapaCursosDelDocente({ iddocente, term }, ctx) {

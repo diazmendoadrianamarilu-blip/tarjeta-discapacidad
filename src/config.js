@@ -15,10 +15,5 @@ export const C = {
 
 export const PERIODO = '202646';
 
-export const MOSTRAR_DIAGNOSTICO = true;
+export const MOSTRAR_DIAGNOSTICO = false; // Cambiar a true para mostrar el diagnóstico de discapacidad en la ficha del alumno
 
-// Estos son los datos de respaldo en caso de que la sesión falle
-export const DOCENTE_RESPALDO = {
-  pidm: 567444,
-  bannerId: 'S00580873'
-}; 
