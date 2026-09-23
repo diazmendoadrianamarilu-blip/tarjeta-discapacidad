@@ -1,348 +1,384 @@
-/* eslint-env browser */
-import React, { useCallback, useEffect, useState } from 'react';
-import {
-  useData,
-  useExtensionControl,
-  useUserInfo,
-} from '@ellucian/experience-extension-utils';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useHistory } from 'react-router-dom';
+import { usePageControl } from '@ellucian/experience-extension-utils';
 
-import Encabezado from './Encabezado';
-import { C, PERIODO, MOSTRAR_DIAGNOSTICO } from '../config';
-import { resolverDocente } from '../api/identidad';
+import { C, CHIPS, LISTA_FILTRADA_POR_SESION } from '../config';
 import {
-  listarAlumnosDelDocente,
-  mapaCursosDelDocente,
-  descargarReporte,
+  completarCarreras,
   iniciales,
+  listarAlumnosDelDocente,
+  obtenerDocenteSesion,
 } from '../api/discapacidad';
-
-/* Color del chip según el código de STVDISA en USS. */
-const COLOR_CHIP = {
-  MO: { fondo: '#E8F0FE', texto: '#1A56C4' }, // Motora
-  FI: { fondo: '#E8F0FE', texto: '#1A56C4' }, // Física
-  VI: { fondo: '#F3EAFE', texto: '#7029C0' }, // Visual
-  AU: { fondo: '#FFF4E0', texto: '#B26A00' }, // Auditiva
-  IN: { fondo: '#FDE9E9', texto: '#C0392B' }, // Intelectual
-  SE: { fondo: '#E6F6EE', texto: '#1E7A4D' }, // Sensorial
-  TE: { fondo: '#E6F6EE', texto: '#1E7A4D' }, // Espectro autista
-  DP: { fondo: '#EFEFF2', texto: '#55555F' }, // Diagnóstico pendiente
-};
-const CHIP_NEUTRO = { fondo: '#EFEFF2', texto: '#55555F' };
+import { crearXlsx, descargarBlob } from '../api/excel';
+import { useEthosFetch } from '../api/useEthosFetch';
+import {
+  Aviso, Encabezado, NotaLegal, Pagina, describirError, s,
+} from '../components/Estructura';
+import {
+  IconoAccesibilidad, IconoDescarga, IconoFlechaDerecha, IconoPersonas,
+} from '../components/Iconos';
 
 const e = {
-  raiz: { background: C.fondo, minHeight: '100%' },
-  contenido: { padding: '2rem', maxWidth: 1100, margin: '0 auto' },
-  antetitulo: {
-    color: C.moradoTexto, fontSize: 12, fontWeight: 700,
-    letterSpacing: '0.09em', textTransform: 'uppercase', marginBottom: 6,
+  cabecera: {
+    display: 'flex',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: 20,
+    marginBottom: 32,
   },
-  encabezado: {
-    display: 'flex', justifyContent: 'space-between',
-    alignItems: 'flex-start', gap: 20, flexWrap: 'wrap',
-  },
-  titulo: { fontSize: 27, fontWeight: 700, color: C.texto, margin: 0 },
-  bajada: { color: C.textoSuave, fontSize: 14, marginTop: 6 },
   contador: {
-    background: C.blanco, border: `1px solid ${C.borde}`, borderRadius: 12,
-    padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', gap: 18,
+    background: C.blanco,
+    border: `1px solid ${C.borde}`,
+    borderRadius: 8,
+    padding: '12px 16px',
+    fontSize: 14,
+    boxShadow: '0 1px 2px 0 rgba(0,0,0,.05)',
     whiteSpace: 'nowrap',
+    alignSelf: 'flex-end',
   },
+  contadorNumero: { marginLeft: 12, fontSize: 18, fontWeight: 700, color: C.texto },
+  lista: { display: 'flex', flexDirection: 'column', gap: 12 },
   fila: {
-    background: C.blanco, border: `1px solid ${C.borde}`, borderRadius: 12,
-    padding: '1rem 1.25rem', marginBottom: 12, display: 'flex',
-    alignItems: 'center', gap: 16, cursor: 'pointer', width: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 16,
+    width: '100%',
+    padding: 16,
+    background: C.blanco,
+    border: `1px solid ${C.borde}`,
+    borderRadius: 12,
+    boxShadow: '0 1px 2px 0 rgba(0,0,0,.05)',
     textAlign: 'left',
+    cursor: 'pointer',
+    color: 'inherit',
+    font: 'inherit',
   },
   avatar: {
-    width: 44, height: 44, borderRadius: '50%', background: '#EEEDF1',
-    color: '#5B5B66', fontWeight: 700, fontSize: 13, flexShrink: 0,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    background: C.gris100,
+    color: '#475569',
+    fontSize: 14,
+    fontWeight: 600,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
+  nombreLinea: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
+  nombre: { fontSize: 16, fontWeight: 600, color: C.texto },
   chip: {
-    display: 'inline-block', borderRadius: 999, padding: '2px 10px',
-    fontSize: 12, fontWeight: 600, marginLeft: 10, verticalAlign: 'middle',
+    display: 'inline-flex',
+    alignItems: 'center',
+    borderRadius: 999,
+    border: '1px solid',
+    padding: '1px 8px',
+    fontSize: 12,
+    fontWeight: 500,
+    lineHeight: '18px',
+    whiteSpace: 'nowrap',
   },
-  meta: { color: C.textoSuave, fontSize: 13.5, marginTop: 3 },
+  meta: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    columnGap: 20,
+    rowGap: 4,
+    marginTop: 6,
+    fontSize: 14,
+    color: C.textoSuave,
+  },
   iconoFila: {
-    width: 34, height: 34, borderRadius: 8, background: '#F3F2F5',
-    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    background: C.gris50,
+    color: C.textoTenue,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    transition: 'background .15s ease, color .15s ease',
   },
   reporte: {
-    background: C.verdeSuave, border: `1px solid ${C.verdeBorde}`, borderRadius: 12,
-    padding: '1.25rem 1.5rem', display: 'flex', justifyContent: 'space-between',
-    alignItems: 'center', gap: 16, marginTop: 24, flexWrap: 'wrap',
+    marginTop: 32,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 16,
+    padding: 20,
+    background: C.verdeFondo,
+    border: `1px solid ${C.verdeBorde}`,
+    borderRadius: 12,
   },
+  reporteTitulo: { margin: 0, fontSize: 16, fontWeight: 600, color: C.verdeTitulo },
+  reporteTexto: { margin: '4px 0 0', fontSize: 14, color: C.verdeTexto },
   botonVerde: {
-    background: C.verde, color: C.blanco, border: 0, borderRadius: 8,
-    padding: '0.7rem 1.1rem', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-    display: 'flex', alignItems: 'center', gap: 8,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
+    height: 36,
+    padding: '0 16px',
+    border: 0,
+    borderRadius: 6,
+    background: C.verde,
+    color: C.blanco,
+    fontSize: 14,
+    fontWeight: 600,
+    cursor: 'pointer',
+    flexShrink: 0,
+    boxShadow: '0 1px 2px 0 rgba(0,0,0,.05)',
   },
-  aviso: {
-    background: C.blanco, border: `1px dashed #D8D6DD`, borderRadius: 12,
-    padding: '3rem 1.5rem', textAlign: 'center', color: C.textoSuave,
-    marginTop: 24,
-  },
-  diag: {
-    background: '#FFFBEA', border: '1px solid #F0DFA8', borderRadius: 12,
-    padding: '1.25rem 1.5rem', marginTop: 24, textAlign: 'left',
-    fontSize: 13, color: '#6B5A16',
-  },
-  codigo: {
-    display: 'block', background: '#FFFFFF', border: '1px solid #EDE6CC',
-    borderRadius: 8, padding: '0.75rem', marginTop: 8, fontSize: 12,
-    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-    whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: '#4A4A52',
-  },
+  esqueleto: { background: '#E2E8F0', borderRadius: 6 },
 };
 
-function Chip({ codigo, texto }) {
-  const c = COLOR_CHIP[codigo] || CHIP_NEUTRO;
-  return <span style={{ ...e.chip, background: c.fondo, color: c.texto }}>{texto}</span>;
+/* Tipo de discapacidad → color del chip (Motora, Visual, Auditiva, Cognitiva). */
+function estiloChip(discapacidad) {
+  const codigo = String(discapacidad.codigo || '').toUpperCase();
+  const texto = String(discapacidad.descripcion || '').toLowerCase();
+  if (['MO', 'FI'].includes(codigo) || /motor|f[ií]sic/.test(texto)) return CHIPS.motora;
+  if (codigo === 'VI' || /visual|ceguera|baja visi/.test(texto)) return CHIPS.visual;
+  if (codigo === 'AU' || /auditiv|sordera|hipoacus/.test(texto)) return CHIPS.auditiva;
+  if (['IN', 'CO', 'TE', 'PS'].includes(codigo)
+    || /cognitiv|intelectual|autis|espectro|mental|psico|aprendizaje/.test(texto)) return CHIPS.cognitiva;
+  return CHIPS.otra;
 }
 
-function IconoAccesibilidad() {
+/* "MOTORA" / "Discapacidad motora" → "Motora". */
+function etiquetaChip(descripcion) {
+  const limpio = String(descripcion || '').replace(/^discapacidad\s+/i, '').trim().toLowerCase();
+  return limpio ? limpio.charAt(0).toUpperCase() + limpio.slice(1) : 'Sin tipo';
+}
+
+function Chip({ discapacidad }) {
+  const c = estiloChip(discapacidad);
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="4.2" r="1.9" fill="#6B6B76" />
-      <path
-        d="M5.5 8.2c2.2.7 4.3 1.1 6.5 1.1s4.3-.4 6.5-1.1M12 9.3v5m0 0 3.3 5.4M12 14.3l-3.3 5.4"
-        stroke="#6B6B76"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-    </svg>
+    <span style={{ ...e.chip, background: c.fondo, color: c.texto, borderColor: c.borde }}>
+      {etiquetaChip(discapacidad.descripcion)}
+    </span>
   );
 }
 
-function IconoDescarga() {
+function FilaAlumno({ alumno, onAbrir }) {
+  const [principal, ...otras] = alumno.discapacidades;
+  const seccion = alumno.secciones[0];
+  const detalleAcademico = alumno.carrera || (seccion ? seccion.curso : null);
+
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M12 3.5v11m0 0 4-4m-4 4-4-4M4.5 18.5h15"
-        stroke="#FFFFFF" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"
-      />
-    </svg>
+    <button type="button" className="bu-fila" style={e.fila} onClick={() => onAbrir(alumno)}>
+      <div style={e.avatar} aria-hidden="true">{iniciales(alumno.nombres, alumno.apellidos)}</div>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={e.nombreLinea}>
+          <span style={e.nombre}>{alumno.nombreCompleto}</span>
+          {principal && <Chip discapacidad={principal} />}
+          {otras.map((d) => <Chip key={d.codigo} discapacidad={d} />)}
+        </div>
+        <div style={e.meta}>
+          {detalleAcademico && <span>{detalleAcademico}</span>}
+          <span style={{ color: C.textoTenue }}>Periodo {alumno.periodo}</span>
+        </div>
+      </div>
+
+      <div className="bu-fila-icono bu-solo-escritorio" style={e.iconoFila}>
+        <IconoAccesibilidad tamano={20} />
+      </div>
+      <span className="bu-fila-flecha" style={{ color: C.iconoTenue, display: 'flex' }}>
+        <IconoFlechaDerecha tamano={20} />
+      </span>
+    </button>
   );
 }
 
-export default function Home() {
-  const { getEthosQuery, getExtensionJwt } = useData();
-  const { setPageTitle, navigateToPage } = useExtensionControl();
-  const userInfo = useUserInfo();
-
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState(null);
-  const [diagnostico, setDiagnostico] = useState(null);
-  const [alumnos, setAlumnos] = useState([]);
-  const [docente, setDocente] = useState(null);
-
-  const term = PERIODO;
-
-  const cargar = useCallback(async () => {
-    setCargando(true);
-    setError(null);
-    setDiagnostico(null);
-    setDocente(null);
-
-    try {
-      const ctx = { getEthosQuery };
-
-      const sesion = await resolverDocente({ userInfo, getExtensionJwt, getEthosQuery });
-      console.info('[Bienestar] identidad del docente:', sesion);
-      setDocente(sesion);
-
-      if (!sesion.pidm) {
-        setDiagnostico(sesion.diagnostico);
-        throw new Error(
-          'No fue posible identificar al docente en esta sesión. Revisa el detalle de abajo.',
-        );
-      }
-
-      const lista = await listarAlumnosDelDocente(
-        { pidmdocente: sesion.pidm, term }, ctx,
-      );
-
-      // El nombre del curso no viene en la API del listado: se completa aquí.
-      if (sesion.bannerId) {
-        try {
-          const cursos = await mapaCursosDelDocente(
-            { iddocente: sesion.bannerId, term }, ctx,
-          );
-          lista.forEach((a) => {
-            a.secciones.forEach((s) => { s.curso = cursos[s.nrc] || s.curso; });
-          });
-        } catch (errCursos) {
-          console.warn('[Bienestar] no se resolvió el nombre de los cursos:', errCursos);
-        }
-      }
-
-      setAlumnos(lista);
-    } catch (err) {
-      console.error('[Bienestar]', err);
-      setError(err.message || 'Ocurrió un error al consultar la información.');
-    } finally {
-      setCargando(false);
-    }
-  }, [getEthosQuery, getExtensionJwt, userInfo, term]);
-
-  useEffect(() => {
-    if (setPageTitle) setPageTitle('Tablero de ajustes razonables');
-    cargar();
-  }, [cargar, setPageTitle]);
-
-  const abrirFicha = (idAlumno) => {
-    navigateToPage({ route: `/alumno/${idAlumno}`, state: { term } });
-  };
-
+function FilaCargando() {
   return (
-    <div style={e.raiz}>
-      <Encabezado
-        subtitulo="Tablero de ajustes razonables"
-        textoVolver="Inicio"
-        alVolver={() => window.history.back()}
-      />
-
-      <div style={e.contenido}>
-        <div style={e.encabezado}>
-          <div>
-            <div style={e.antetitulo}>Panel institucional</div>
-            <h1 style={e.titulo}>Alumnos con Discapacidad Registrada</h1>
-            <div style={e.bajada}>
-              Consulta los estudiantes asignados a tus cursos y gestiona sus
-              ajustes razonables.
-              {docente && docente.nombre && (
-                <span> Sesión de <strong>{docente.nombre}</strong>.</span>
-              )}
-            </div>
-          </div>
-
-          <div style={e.contador}>
-            <span style={{ color: C.textoSuave, fontSize: 13.5 }}>Total registrados</span>
-            <span style={{ fontSize: 24, fontWeight: 700, color: C.texto }}>
-              {cargando ? '—' : alumnos.length}
-            </span>
-          </div>
-        </div>
-
-        {cargando && (
-          <div style={e.aviso}>Cargando estudiantes…</div>
-        )}
-
-        {!cargando && error && (
-          <div style={{ ...e.aviso, borderColor: '#E3B7B7', color: '#96302C' }}>
-            {error}
-            <div style={{ marginTop: 14 }}>
-              <button
-                type="button"
-                style={{ ...e.botonVerde, background: C.morado, margin: '0 auto' }}
-                onClick={cargar}
-              >
-                Reintentar
-              </button>
-            </div>
-          </div>
-        )}
-
-        {!cargando && diagnostico && MOSTRAR_DIAGNOSTICO && (
-          <div style={e.diag}>
-            <strong>Diagnóstico de identidad</strong>
-            <div style={{ marginTop: 6 }}>
-              La identificación la resuelve Banner: la API <code>x-docente-sesion</code>
-              {' '}filtra <code>SPRIDEN_PIDM = SECURITY_PRINCIPAL_ID</code> con el usuario
-              autenticado. Si no devuelve fila, revisa que la API esté publicada, que
-              tenga marcada la <em>Autenticación del usuario</em> con el rol
-              {' '}<code>FACULTY</code> y que ese rol esté asignado a tu usuario.
-            </div>
-            <code style={e.codigo}>
-              {`Resuelto en → ${diagnostico.encontradoEn || 'ningún origen'}
-useUserInfo() → ${(diagnostico.camposUserInfo || []).join(' | ') || 'sin campos'}
-JWT extensión → ${(diagnostico.camposJwt || []).join(' | ') || 'sin campos'}
-Notas → ${diagnostico.notas.length ? diagnostico.notas.join(' | ') : 'ninguna'}`}
-            </code>
-          </div>
-        )}
-
-        {!cargando && !error && alumnos.length === 0 && (
-          <div style={e.aviso}>
-            No hay estudiantes con discapacidad registrada en tus secciones para
-            el periodo {term}.
-          </div>
-        )}
-
-        {!cargando && !error && alumnos.length > 0 && (
-          <div style={{ marginTop: 24 }}>
-            {alumnos.map((a) => {
-              const principal = a.discapacidades[0];
-              const seccion = a.secciones[0];
-              const curso = seccion
-                ? (seccion.curso || `${seccion.codMateria} ${seccion.numCurso}`)
-                : 'Sin sección asignada';
-              const extra = a.secciones.length > 1
-                ? ` · ${a.secciones.length} secciones`
-                : (seccion ? ` · NRC ${seccion.nrc}` : '');
-
-              return (
-                <div
-                  key={a.idAlumno}
-                  role="button"
-                  tabIndex={0}
-                  style={e.fila}
-                  onClick={() => abrirFicha(a.idAlumno)}
-                  onKeyDown={(ev) => { if (ev.key === 'Enter') abrirFicha(a.idAlumno); }}
-                >
-                  <div style={e.avatar}>{iniciales(a.nombres, a.apellidos)}</div>
-
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div>
-                      <span style={{ fontWeight: 600, color: C.texto, fontSize: 15 }}>
-                        {a.nombreCompleto}
-                      </span>
-                      {principal && (
-                        <Chip codigo={principal.codigo} texto={principal.descripcion} />
-                      )}
-                      {a.discapacidades.length > 1 && (
-                        <Chip codigo="" texto={`+${a.discapacidades.length - 1}`} />
-                      )}
-                    </div>
-                    <div style={e.meta}>
-                      {curso}{extra} &nbsp;·&nbsp; Periodo {a.periodo || term}
-                    </div>
-                  </div>
-
-                  <div style={e.iconoFila}><IconoAccesibilidad /></div>
-                  <span style={{ color: '#A9A7B0', fontSize: 20 }}>&rsaquo;</span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {!cargando && !error && alumnos.length > 0 && (
-          <div style={e.reporte}>
-            <div>
-              <div style={{ fontWeight: 600, color: C.texto, fontSize: 15 }}>
-                Reporte de estudiantes registrados
-              </div>
-              <div style={{ ...e.meta, marginTop: 4 }}>
-                Exporta la información para análisis y seguimiento institucional.
-              </div>
-            </div>
-            <button
-              type="button"
-              style={e.botonVerde}
-              onClick={() => descargarReporte(alumnos, term)}
-            >
-              <IconoDescarga /> Descargar reporte
-            </button>
-          </div>
-        )}
-
-        <div style={{ ...e.meta, marginTop: 28, fontSize: 12 }}>
-          Dato sensible (Ley 29733). Úselo únicamente para aplicar los ajustes
-          razonables que correspondan y no lo difunda.
-        </div>
+    <div className="bu-pulso" style={{ ...e.fila, cursor: 'default' }} aria-hidden="true">
+      <div style={{ ...e.avatar, background: '#E2E8F0' }} />
+      <div style={{ flex: 1 }}>
+        <div style={{ ...e.esqueleto, width: '40%', height: 16 }} />
+        <div style={{ ...e.esqueleto, width: '25%', height: 12, marginTop: 10 }} />
       </div>
     </div>
   );
 }
- 
+
+function exportarExcel(alumnos, term) {
+  const filas = [[
+    'Código', 'Apellidos', 'Nombres', 'Carrera', 'Tipo de discapacidad',
+    'Discapacidad principal', 'Curso(s)', 'NRC', 'Periodo',
+  ]];
+  alumnos.forEach((a) => {
+    const principal = a.discapacidades.find((d) => d.principal) || a.discapacidades[0];
+    filas.push([
+      a.idAlumno,
+      a.apellidos,
+      a.nombres,
+      a.carrera || '',
+      a.discapacidades.map((d) => d.descripcion).join(' / '),
+      principal ? principal.descripcion : '',
+      a.secciones.map((x) => x.curso).filter(Boolean).join(' / '),
+      a.secciones.map((x) => x.nrc).join(' / '),
+      a.periodo || term,
+    ]);
+  });
+  const fecha = new Date().toISOString().slice(0, 10);
+  descargarBlob(crearXlsx(filas, 'Alumnos'), `alumnos-discapacidad-${term}-${fecha}.xlsx`);
+}
+
+export default function Home({ term }) {
+  const authenticatedEthosFetch = useEthosFetch();
+  const { setPageTitle } = usePageControl();
+  const history = useHistory();
+
+  const [estado, setEstado] = useState('cargando'); // cargando | listo | error
+  const [error, setError] = useState(null);
+  const [alumnos, setAlumnos] = useState([]);
+  const solicitud = useRef(0);
+
+  const cargar = useCallback(async () => {
+    const id = solicitud.current + 1;
+    solicitud.current = id;
+    setEstado('cargando');
+    setError(null);
+
+    try {
+      // 1. Identidad: Banner resuelve el PIDM del usuario autenticado
+      //    (x-docente-sesion filtra SPRIDEN_PIDM = SECURITY_PRINCIPAL_ID).
+      let pidm = null;
+      if (!LISTA_FILTRADA_POR_SESION) {
+        const docente = await obtenerDocenteSesion(authenticatedEthosFetch);
+        if (!docente || !Number.isFinite(docente.pidm)) {
+          const err = new Error('identidad');
+          err.tipo = 'identidad';
+          throw err;
+        }
+        pidm = docente.pidm;
+      }
+
+      // 2. Alumnos con discapacidad matriculados en los NRC del docente.
+      const lista = await listarAlumnosDelDocente(authenticatedEthosFetch, { pidm, term });
+      if (solicitud.current !== id) return;
+      setAlumnos(lista);
+      setEstado('listo');
+
+      // 3. La carrera viene de la ficha; se completa sin bloquear la lista.
+      if (lista.some((a) => !a.carrera)) {
+        const conCarrera = await completarCarreras(authenticatedEthosFetch, lista, term);
+        if (solicitud.current === id) setAlumnos(conCarrera);
+      }
+    } catch (err) {
+      if (solicitud.current !== id) return;
+      console.error('[Bienestar]', err);
+      setError(err);
+      setEstado('error');
+    }
+  }, [authenticatedEthosFetch, term]);
+
+  useEffect(() => {
+    if (setPageTitle) setPageTitle('Bienestar Universitario');
+  }, [setPageTitle]);
+
+  useEffect(() => {
+    cargar();
+  }, [cargar]);
+
+  const abrirFicha = (alumno) => {
+    history.push(`/alumno/${encodeURIComponent(alumno.idAlumno)}`, { alumno });
+  };
+
+  const volverAlInicio = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      // Primer segmento de la URL = alias del tenant (p. ej. /ussipantest).
+      const tenant = window.location.pathname.split('/').filter(Boolean)[0];
+      window.location.assign(tenant ? `/${tenant}` : '/');
+    }
+  };
+
+  let cuerpo;
+  if (estado === 'cargando') {
+    cuerpo = (
+      <div style={e.lista} aria-busy="true" aria-label="Cargando estudiantes">
+        <FilaCargando /><FilaCargando /><FilaCargando />
+      </div>
+    );
+  } else if (estado === 'error') {
+    const esIdentidad = error && error.tipo === 'identidad';
+    cuerpo = (
+      <Aviso
+        tono="error"
+        titulo={esIdentidad
+          ? 'No pudimos identificar tu usuario docente en Banner'
+          : 'No pudimos cargar la lista de estudiantes'}
+        texto={esIdentidad
+          ? 'Tu sesión no devolvió un registro docente. Si el problema continúa, comunícate con la Dirección de Tecnología y Transformación.'
+          : 'Ocurrió un problema al consultar la información. Intenta nuevamente en unos segundos.'}
+        accion={cargar}
+        textoAccion="Reintentar"
+        detalle={esIdentidad ? 'API: x-docente-sesion\nRespondió sin filas para el usuario de la sesión.' : describirError(error)}
+      />
+    );
+  } else if (alumnos.length === 0) {
+    cuerpo = (
+      <Aviso
+        icono={<IconoPersonas tamano={22} />}
+        titulo="No tienes estudiantes con discapacidad en tus cursos"
+        texto={`En el periodo ${term} ninguno de los estudiantes matriculados en tus secciones tiene una discapacidad registrada. Si crees que falta alguien, comunícate con Bienestar Universitario.`}
+      />
+    );
+  } else {
+    cuerpo = (
+      <>
+        <div style={e.lista}>
+          {alumnos.map((a) => <FilaAlumno key={a.idAlumno} alumno={a} onAbrir={abrirFicha} />)}
+        </div>
+
+        <div className="bu-apilar" style={e.reporte}>
+          <div>
+            <p style={e.reporteTitulo}>Reporte de estudiantes registrados</p>
+            <p style={e.reporteTexto}>Exporta la información para análisis y seguimiento institucional.</p>
+          </div>
+          <button
+            type="button"
+            className="bu-boton bu-boton-verde bu-ancho-completo"
+            style={e.botonVerde}
+            onClick={() => exportarExcel(alumnos, term)}
+          >
+            <IconoDescarga tamano={16} /> Descargar reporte Excel
+          </button>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <Pagina>
+      <Encabezado
+        subtitulo="Tablero de ajustes razonables"
+        textoVolver="Inicio"
+        alVolver={volverAlInicio}
+      />
+
+      <main className="bu-contenedor" style={s.contenedor}>
+        <div className="bu-apilar" style={e.cabecera}>
+          <div>
+            <p style={s.antetitulo}>Panel institucional</p>
+            <h1 style={s.titulo}>Alumnos con Discapacidad Registrada</h1>
+            <p style={s.bajada}>
+              Consulta los estudiantes asignados a tus cursos y gestiona sus ajustes razonables.
+            </p>
+          </div>
+          <div style={e.contador} aria-live="polite">
+            <span style={{ color: C.textoSuave }}>Total registrados</span>
+            <strong style={e.contadorNumero}>{estado === 'listo' ? alumnos.length : '—'}</strong>
+          </div>
+        </div>
+
+        {cuerpo}
+
+        <NotaLegal />
+      </main>
+    </Pagina>
+  );
+}

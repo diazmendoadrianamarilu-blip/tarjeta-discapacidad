@@ -1,143 +1,123 @@
 import React from 'react';
-import { useExtensionControl } from '@ellucian/experience-extension-utils';
-import { C } from '../config';
+import { useCardControl } from '@ellucian/experience-extension-utils';
+
+import { C, FUENTE } from '../config';
+import portada from '../assets/portada';
+import { IconoEscudo, IconoFlechaDerecha } from '../components/Iconos';
+
+const CSS = `
+.bu-tarjeta-boton { transition: background .15s ease; }
+.bu-tarjeta-boton:hover { background: ${C.moradoHover} !important; }
+.bu-tarjeta-boton:focus-visible { outline: 2px solid #2879A8; outline-offset: 2px; }
+`;
 
 const e = {
   contenedor: {
     display: 'flex',
     flexDirection: 'column',
     height: '100%',
-    margin: -16,           // la tarjeta de Experience trae padding propio
-  },
-  franja: { height: 6, background: C.moradoOscuro, flexShrink: 0 },
-  portada: {
-    height: 116,
-    flexShrink: 0,
-    background: `linear-gradient(135deg, ${C.morado} 0%, ${C.moradoOscuro} 100%)`,
-    position: 'relative',
+    background: C.blanco,
+    fontFamily: FUENTE,
+    color: C.textoTarjeta,
     overflow: 'hidden',
   },
+  franja: { height: 6, background: C.morado, flexShrink: 0 },
+  portada: {
+    position: 'relative',
+    height: 144,
+    flexShrink: 0,
+    overflow: 'hidden',
+    background: '#DCDCDC',
+  },
+  imagen: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    objectPosition: 'center',
+    display: 'block',
+  },
+  velo: { position: 'absolute', inset: 0, background: 'rgba(23, 63, 112, 0.10)' },
   cuerpo: {
-    padding: '1.25rem',
+    flex: 1,
     display: 'flex',
     flexDirection: 'column',
-    flex: 1,
+    padding: '20px 24px 24px',
   },
   icono: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     borderRadius: 12,
-    background: C.moradoSuave,
+    background: C.verdeLima,
+    color: C.morado,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: '0.9rem',
+    marginBottom: 12,
   },
   titulo: {
-    fontSize: 19,
-    fontWeight: 700,
-    color: C.texto,
     margin: 0,
-    marginBottom: 6,
+    fontSize: 23,
+    lineHeight: '28px',
+    fontWeight: 600,
+    letterSpacing: '-0.025em',
+    color: C.textoTarjeta,
   },
-  bajada: { fontSize: 14, color: C.textoSuave, margin: 0, lineHeight: 1.45 },
+  bajada: { margin: '4px 0 0', fontSize: 14, lineHeight: '24px', color: C.textoTarjetaSuave },
   boton: {
-    marginTop: 'auto',
     width: '100%',
+    minHeight: 56,
+    padding: '0 16px',
+    border: 0,
+    borderRadius: 6,
     background: C.morado,
     color: C.blanco,
-    border: 0,
-    borderRadius: 8,
-    padding: '0.85rem 1rem',
-    fontSize: 14.5,
+    fontFamily: FUENTE,
+    fontSize: 16,
     fontWeight: 600,
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    gap: 8,
+    boxShadow: '0 1px 2px 0 rgba(0,0,0,.05)',
   },
-  pie: {
-    marginTop: 12,
-    textAlign: 'center',
-    fontSize: 11.5,
-    color: C.textoSuave,
-  },
+  pie: { margin: '16px 0 0', textAlign: 'center', fontSize: 12, color: C.textoTarjetaPie },
 };
 
-function EscudoMorado() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M12 2.5 4.5 5.5v6c0 4.6 3.2 8.9 7.5 10 4.3-1.1 7.5-5.4 7.5-10v-6L12 2.5Z"
-        stroke={C.morado}
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
-      <path
-        d="m9 12 2.2 2.2L15.5 10"
-        stroke={C.morado}
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
+export default function TarjetaDiscapacidadCard() {
+  const { navigateToPage } = useCardControl();
 
-/** Silueta decorativa de la portada — evita depender de una imagen externa. */
-function Portada() {
-  return (
-    <div style={e.portada} aria-hidden="true">
-      <svg
-        viewBox="0 0 400 120"
-        preserveAspectRatio="none"
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
-      >
-        <circle cx="330" cy="30" r="70" fill="#FFFFFF" opacity="0.07" />
-        <circle cx="60" cy="110" r="55" fill="#FFFFFF" opacity="0.06" />
-        <path d="M0 95 Q 100 60 200 85 T 400 70 L400 120 L0 120 Z" fill="#FFFFFF" opacity="0.08" />
-      </svg>
-    </div>
-  );
-}
-
-const TarjetaDiscapacidadCard = () => {
-  const { navigateToPage } = useExtensionControl();
-
-  const abrirTablero = () => {
-    try {
-      navigateToPage({ route: '/' });
-    } catch (error) {
-      console.error('Error al intentar navegar:', error);
-    }
+  const abrirTablero = (evento) => {
+    evento.stopPropagation();
+    navigateToPage({ route: '/' });
   };
 
   return (
     <div style={e.contenedor}>
+      <style>{CSS}</style>
       <div style={e.franja} />
-      <Portada />
+      <div style={e.portada}>
+        <img
+          src={portada}
+          alt="Estudiante usando un computador en un espacio universitario"
+          style={e.imagen}
+        />
+        <div style={e.velo} />
+      </div>
 
       <div style={e.cuerpo}>
-        <div style={e.icono}>
-          <EscudoMorado />
-        </div>
-
+        <div style={e.icono}><IconoEscudo tamano={20} /></div>
         <h3 style={e.titulo}>Bienestar Universitario</h3>
         <p style={e.bajada}>Atención y acompañamiento para estudiantes.</p>
 
-        <button type="button" style={e.boton} onClick={abrirTablero}>
-          Abrir tablero de ajustes razonables
-          <span aria-hidden="true">&rsaquo;</span>
-        </button>
-
-        <div style={e.pie}>
-          Acceso institucional para docentes y personal administrativo.
+        <div style={{ marginTop: 'auto', paddingTop: 16 }}>
+          <button type="button" className="bu-tarjeta-boton" style={e.boton} onClick={abrirTablero}>
+            Abrir tablero de ajustes razonables
+            <IconoFlechaDerecha tamano={16} />
+          </button>
+          <p style={e.pie}>Acceso institucional para docentes y personal administrativo.</p>
         </div>
       </div>
     </div>
   );
-};
-
-export default TarjetaDiscapacidadCard;
- 
+}
