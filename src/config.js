@@ -21,4 +21,4 @@ export const MOSTRAR_DIAGNOSTICO = true;
 export const DOCENTE_RESPALDO = {
   pidm: 567444,
   bannerId: 'S00580873'
-};
+}; 
