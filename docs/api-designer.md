@@ -75,6 +75,18 @@ se usa `PERIODO` de `src/config.js`.
    - En esa aplicación, revisa que `x-docente-sesion`, `x-discapacidad-docente`
      y `x-discapacidad-detalle` estén entre los recursos a los que tiene
      acceso. Si no están, agrégalas.
+   **404 "Resource owner not found for the requested resource"** (visto en
+   TEST el 23/09/2026): la llamada sí llega a Ethos con el token del usuario,
+   pero Ethos no sabe qué aplicación atiende ese recurso.
+   - En `integrate.elluciancloud.com` → **Recursos**, busca `x-asignacion-docente`
+     (la API que ya usan otras tarjetas) y anota la aplicación dueña.
+   - Busca `x-docente-sesion`, `x-discapacidad-docente` y
+     `x-discapacidad-detalle`. Si no aparecen, abre esa misma aplicación dueña
+     → **Recursos propios** y actualiza la lista de recursos para que tome las
+     APIs publicadas en API Designer.
+   - Comprueba que figure la versión que pide la tarjeta (1.0.0 o 1.1.0).
+   - No sirve abrir `https://integrate.elluciancloud.com/api/x-docente-sesion`
+     en el navegador: sin token siempre devuelve 401.
 2. **API Designer**: las tres publicadas con *Autenticación del usuario*. El
    rol de la API (`SELFSERVICE-FACULTY`) tiene que estar asignado al docente en
    Banner.
