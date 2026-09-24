@@ -212,10 +212,19 @@ export function NotaLegal() {
   );
 }
 
+/* Respuestas del proxy de Ethos y dónde se corrigen (docs/api-designer.md). */
+const PISTAS = {
+  401: 'el token de la sesión no fue aceptado; vuelve a iniciar sesión en Experience.',
+  403: 'el usuario no tiene el rol de la API en Banner, o la aplicación de Experience no tiene acceso al recurso.',
+  404: 'Ethos no conoce el recurso: ninguna aplicación lo tiene entre sus "Recursos propios". Actualiza los recursos de la aplicación de Banner que publica las APIs de API Designer.',
+};
+
 export function describirError(err) {
   if (!err) return null;
   if (err.name === 'ErrorApi') {
-    return `API: ${err.recurso}\nEstado HTTP: ${err.estado || '—'}\nDetalle: ${err.detalle || '—'}`;
+    const base = `API: ${err.recurso}\nEstado HTTP: ${err.estado || '—'}\nDetalle: ${err.detalle || '—'}`;
+    const pista = PISTAS[err.estado];
+    return pista ? `${base}\nQué revisar: ${pista}` : base;
   }
   return String(err.message || err);
 }
