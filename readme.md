@@ -1,129 +1,145 @@
-# Create Experience Extension
-This module bootstraps your Ellucian Experience Extension development by creating an extension project. This module is primarily used to create your initial project. From this, you would add cards and make modifications. This project should be placed under your source control.
+# Tarjeta Bienestar Universitario: integración con Banner
 
-## Quick Start
-Ensure you're running node 24.13.0
-```sh
-npx https://cdn.elluciancloud.com/assets/SDK/latest/ellucian-create-experience-extension-latest.tgz my-extension
-cd my-extension
-npm install
-```
-For Unix based systems:
-```
-cp sample.env .env
-```
-For Windows based systems:
-```
-copy sample.env .env
-```
-In the .env replace <upload-token> with an extension token from Experience Setup.
-```
-npm run deploy-dev
+GAP Capacidad 8 · ACT-GAP-CAP10-2026-DTT-USS
+
+## 1. Por qué fallaba (400 en `/api/ethos-query`)
+
+`getEthosQuery` **no ejecuta APIs de API Designer**. Solo ejecuta consultas
+**GraphQL** de Ethos (Data Access) declaradas dentro de cada tarjeta:
+
+```js
+cards: [{
+  queries: {
+    'mi-consulta': [{ resourceVersions: { sections: { min: 16 } }, query: `...` }]
+  }
+}]
+// uso: getEthosQuery({ queryId: 'mi-consulta', properties: { ... } })
 ```
 
-At this point, you have deployed the updated builds. Please re-run `npm run deploy-dev` if you update `extension.js`, `package.json`, or add a new card.
+El bloque `ethos: { queries: [...] }` que tenía `extension.js` no es parte del
+SDK. El `queryId` nunca llegaba al manifiesto y el servidor respondía **400**
+("Request Failed for the queryId"), fuera cual fuera el formato de
+`searchParameters` (ese parámetro tampoco existe: el correcto es `properties`).
 
-**NOTE:** This is using the real Experience Dashboard so your extension will not be visible until it is fully set up. This means you must enable your extension in Experience Setup and configure your card(s) in the Dashboard. This will be required each time you change your extension's version number.
+Además, `jwt.user.erpId` (`100723307`) es el **código Banner (SPRIDEN_ID)**, no
+el PIDM. Aunque la llamada hubiera funcionado, `pidmdocente=100723307` habría
+devuelto una lista vacía o la de otra persona.
 
-### Live reloading the extensions
-With live reloading enabled, you can make changes to your extensions locally and see them reflected immediately in your extensions — no browser reload required. Also, in this mode, changes are served directly from your development machine. This should significantly speed up the build/test process. Make sure you have run `npm run deploy-dev` command once to upload the extensions.
-```
-npm start
-```
-The server uses local port `8082` to communicate with the Experience Dashboard, by default. If that port is not open — or you need to use a different one, for any reason — you can specify an override. To do this, create a `.env` file if not already created and add the `PORT` environment variable with the port value that is available and save the file. EX: `PORT=8989`. Now run the below command.
-```
-npm start
-```
+## 2. Cómo se llaman ahora
 
-This will start the local development server of the extension on port `8082` or the port number you have provided in the `.env` file. Now you can open the Experience app on any instances such as https://experience-test.elluciancloud.com/.
-
-To put the Experience app into live reload mode, follow the steps given below.
-1. Open browser developer tools
-2. Go to the console tab of developer tools.
-3. Run this function `enableLiveReload([optional-port-number])` from the console tab. NOTE that if you have launched the extension app on port other than the default `8082` port then provide the same port number while enabling live reload for Experience app.
-4. Refresh the Experience app.
-
-After you refresh the app, the cool thing is that only your extensions will show up. Make sure to bookmark your extensions. Now when you make changes to your extension code, locally, you'll see those changes reflected automatically and instantly in your browser, for both cards and pages. There will be no need for an explicit browser reload.
-
-To disable live reload, run this function `disableLiveReload()` from console tab.
-
-**NOTE** that changes to extension metadata (`package.json` and `extension.json`) will not be automatically picked up by live reload, nor will newly-created cards and pages. To see these changes, run the below command. Notice the `forceUpload` command-line argument, this will force the assets to be uploaded with the same version.
-```
-npm run deploy-dev -- --env forceUpload
-```
-### Watch and upload extensions
-The command `npm start` has been repurposed to put the extension app into live-reload mode. To watch the changes and automatically deploy the updated builds, you can run the below command.
-```
-npm run watch-and-upload
-```
-**NOTE:**  This is using the real Experience Dashboard so your extension will not be visible until it is fully set up. This means you must enable your extension in Experience Setup and configure your card(s) in the Dashboard. This will be required each time you change your extension's version number.
-
-## Extension Manifest
-When an Extension is bundled for uploading to Ellucian Experience, the information specified in the src folder (cards and i18n), package.json, and extension.js file are used to generate a manifest.json file which provides the Ellucian Experience framework the information it needs to handle the creation and management of the Extension and its Cards.
-
-The extension.js file located in the root of the extension folder defines the Extension package containing one or more Cards. This includes identifying information about the Extension as a whole, configuration attribute definitions for the Extension, as well as Card-specific attributes for each Card contained in the Extension.
-
-| Attribute | Description |
-|-----------|-------------|
-| publisher      | The organizational name of the extension publisher, such as 'Ellucian' or 'Drexel'|
-| name           | The internal name of the Extension (this is not displayed to users) - should match the package.json name, but doesn't have to. Note this name should not change once the extension is in use. The extension name is used to generate a namespaced card ID.|
-| configuration  | Define configuration values shared among the Extension Cards in this object. These configuration values appear in the Configure step when a card manager is configuring a Card contained in the Extension. |
-| cards          | The list of Cards present in the Extension package.|
-
-Each card in the cards array has several required attributes.
-
-| Card Attribute  | Description |
-|-----------------|-------------|
-| type            | A unique key to identify the type of the Card. No spaces should appear in the type. Once the extension is distributed to users, you should not alter this value as it is a key identifier |
-| configuration   | Define configuration values unique to the Card in this object. These configuration values appear in the Configure step when a card manager is configuring the Card. |
-| description     | The default description of the Card. Card managers will be able to override this when configuring the Card for their users.|
-| title           | The default title of the Card appearing to users in the Experience Dashboard. Card managers will be able to override this value when configuring the Card for their users.|
-| source          | The file system path to the Card's source, relative from the Extension root folder. Example: './src/cards/HelloWorldCard' (with or without the .jsx)|
-| displayCardType | The type of the card as displayed to card managers on the Card Management page of Experience Dashboard. Example: "Hello World Card"|
-
-## Utilizing the Setup API
-Any of the scripts which deploy the extension can also be used to configure the extension in setup.  This is done through additional environment variables in the .env which are:
-
-| Environment Variable | Description |
-| ---------------------|-------------|
-| EXPERIENCE_EXTENSION_SHARED_SECRET | A string with a minimum of 32 characters
-| EXPERIENCE_EXTENSION_ENABLED | a javascript boolean (true/false)
-| EXPERIENCE_EXTENSION_ENVIRONMENTS | a case-sensitive, comma-delimited list without spaces (Tenant1,Tenant2)
-| EXPERIENCE_EXTENSION_RETURN_API_TOKEN | a javascript boolean (true/false) that returns an api token to the console on upload. EXPERIENCE_EXTENSION_SHARED_SECRET must be set for this to return the token.
-
-You can define any combination of these, none are required.  These features correspond to the same toggles present in the Setup Application's UI.
-
-## Package Scripts
-Below is a short description of the scripts found in package.json.
-
-| Script | Description |
-|--------|-------------|
-| build-dev | Package the development build. |
-| build-prod | Package the production build. |
-| deploy-dev | Package and deploy the development build. |
-| deploy-prod | Package and deploy the production build. |
-| watch-and-upload | Package and deploy the development build while also watching for changes to automatically deploy updated builds. |
-| start | Package the development build and run a websocket server where changes are served directly from your development machine. No reload necessary. |
-| lint | Run eslint to check code against linting rules. |
-
-## Sample cards
-Creating an experience extension will also create a sample card, with a page to help demonstrate how props and hooks can be used in the Ellucian Experience Software Development Kit (SDK). For more of our sample cards and examples of how to unit test cards, visit: https://github.com/ellucian-developer/experience-extension-sdk-samples
-
-## Code checking
-The project is also set up to check for coding errors and best practices. By running eslint (npm run lint), the code will be statically analyzed to find problems based on the rules established in .eslinitrc.json.
-
-## Resetting Your npm Environment
-
-If want to start fresh, with a clean npm environment — for example, after upgrading to a new version of the SDK — follow the steps below.
-
-First, clean your npm cache:
+Las tres APIs se llaman por **REST** con `authenticatedEthosFetch` (hook
+`useData()` del SDK), que pasa por el proxy de Ethos de Experience **con el token
+del usuario de la sesión**. Es el mismo mecanismo que usa Ellucian para las
+Business Process APIs (`userTokenBusinessProcessQuery` en
+[experience-extension-extras](https://github.com/ellucian-developer/experience-extension-extras/blob/main/src/data/user-token-business-process-query.js)).
 
 ```
-npm cache clean --force
+GET x-docente-sesion
+    Accept: application/vnd.hedtech.integration.v1.0.0+json
+GET x-discapacidad-docente?pidmdocente=<pidm>&term=202646
+    Accept: application/vnd.hedtech.integration.v1.1.0+json
+GET x-discapacidad-detalle?idalumno=<SPRIDEN_ID>&term=202646
+    Accept: application/vnd.hedtech.integration.v1.0.0+json
 ```
 
-Reinstall all your dependencies from scratch:
+Como la llamada va con token de usuario, **se conservan** la "Autenticación del
+usuario" (rol `SELFSERVICE-FACULTY`) y el filtro `SECURITY_PRINCIPAL_ID`. **Ya
+no hace falta** recrear las APIs con autenticación básica.
 
-1. Delete your node_modules directory
-2. Delete your package-lock.json file
-3. Run `npm install`
+Flujo:
+
+1. `x-docente-sesion`: Banner devuelve el PIDM del usuario autenticado
+   (`SPRIDEN_PIDM = SECURITY_PRINCIPAL_ID`). No se lee ningún identificador del
+   navegador.
+2. `x-discapacidad-docente`: alumnos con discapacidad matriculados en los NRC del
+   docente. Si no hay filas, se muestra el mensaje "No tienes estudiantes con
+   discapacidad en tus cursos".
+3. `x-discapacidad-detalle`: ficha del alumno. También completa la carrera en el
+   listado, porque la API del listado no la trae.
+
+Versiones y recursos: `src/config.js` → `API`.
+Periodo: Card Management → Configurar → *Periodo académico*. Si se deja vacío,
+se usa `PERIODO` de `src/config.js`.
+
+## 3. Lista de verificación en el tenant (antes de desplegar)
+
+1. **Primero despliega y prueba.** Si el panel de diagnóstico no aparece y la
+   lista carga, no hay nada que configurar en Ethos Integration.
+   Solo si el panel muestra **401, 403 o 404** para alguna API:
+   - **No crees una aplicación nueva.** Experience ya usa una aplicación de
+     Ethos que existía antes de la tarjeta. En
+     `integrate.elluciancloud.com` → Aplicaciones (tenant `ee114c5f…`),
+     búscala con el buscador ("Experience").
+   - Si hay varias, la correcta es la que tiene la misma clave de API que
+     aparece en Experience Setup para este ambiente.
+   - En esa aplicación, revisa que `x-docente-sesion`, `x-discapacidad-docente`
+     y `x-discapacidad-detalle` estén entre los recursos a los que tiene
+     acceso. Si no están, agrégalas.
+2. **API Designer**: las tres publicadas con *Autenticación del usuario*. El
+   rol de la API (`SELFSERVICE-FACULTY`) tiene que estar asignado al docente en
+   Banner.
+3. Borradores que se pueden eliminar: `x-quien-soy` y el borrador 1.1.0 de
+   `x-discapacidad-detalle` que se abrió solo para probar el checkbox.
+4. Desplegar: `npm run deploy-dev -- --env forceUpload` (se cambió `extension.js`).
+
+Si algo falla, el panel amarillo de la tarjeta muestra la API, el estado HTTP y
+el mensaje de Ethos. Para ocultarlo en producción, cambia
+`MOSTRAR_DIAGNOSTICO` a `false`.
+
+## 4. Pendiente: `x-discapacidad-detalle` 1.1.0 (datos de contacto y ajustes)
+
+La versión 1.0.0 no devuelve fecha de nacimiento, correo, teléfono, dirección
+ni ajustes razonables. Mientras no se publique la 1.1.0, la ficha muestra "No
+registrado" en esos campos. Para completarla, crea la versión 1.1.0 sobre la
+misma consulta y agrega estas uniones **LEFT** (todas por PIDM) con estas
+propiedades. Los nombres de propiedad son los que ya lee la tarjeta:
+
+| Entidad (left join) | Unión | Columna | Propiedad |
+|---|---|---|---|
+| SPBPERS | `SPBPERS_PIDM = SPRIDEN_PIDM` | `SPBPERS_BIRTH_DATE` | `fechaNacimiento` |
+| GOREMAL | `GOREMAL_PIDM = SPRIDEN_PIDM` | `GOREMAL_EMAIL_ADDRESS` | `correo` |
+| | | `GOREMAL_PREFERRED_IND` | `correoPreferido` |
+| | | `GOREMAL_STATUS_IND` | `correoEstado` |
+| SPRTELE | `SPRTELE_PIDM = SPRIDEN_PIDM` | `SPRTELE_PHONE_AREA` | `telefonoArea` |
+| | | `SPRTELE_PHONE_NUMBER` | `telefonoNumero` |
+| | | `SPRTELE_PRIMARY_IND` | `telefonoPrincipal` |
+| | | `SPRTELE_STATUS_IND` | `telefonoEstado` |
+| SPRADDR | `SPRADDR_PIDM = SPRIDEN_PIDM` | `SPRADDR_STREET_LINE1` | `direccion` |
+| | | `SPRADDR_CITY` | `ciudad` |
+| | | `SPRADDR_TO_DATE` | `direccionHasta` |
+| | | `SPRADDR_STATUS_IND` | `direccionEstado` |
+| SGRDSER | `SGRDSER_PIDM = SGRDISA_PIDM` y `SGRDSER_DISA_CODE = SGRDISA_DISA_CODE` | `SGRDSER_SPSR_CODE` | `ajusteCodigo` |
+| STVSPSR | `STVSPSR_CODE = SGRDSER_SPSR_CODE` | `STVSPSR_DESC` | `ajuste` |
+
+- No pongas filtros de estado en *criteria*: con uniones LEFT, un filtro sobre
+  la tabla derecha elimina a los alumnos sin correo o sin teléfono. La tarjeta
+  ya elige el correo preferido, el teléfono principal y la dirección vigente
+  entre las filas.
+- Verifica en API Designer los nombres de columna de SGRDSER/STVSPSR (bloque
+  *Disability Services* de SGADISA). En este ambiente SGRDSER estaba vacía.
+- Si USS guarda el correo institucional con un código propio (GOREMAL_EMAL_CODE),
+  agrega esa columna como `tipoCorreo` y avísame para priorizarla.
+- Después de publicarla, cambia `API.detalle.version` a `'1.1.0'` en
+  `src/config.js`.
+
+## 5. Recomendado antes de producción: `x-discapacidad-docente` 1.2.0
+
+Hoy el PIDM del docente viaja como parámetro (`pidmdocente`). Alguien que
+manipule la página podría pedir la lista de otro docente. Para cerrarlo:
+
+1. Crea la versión 1.2.0 de `x-discapacidad-docente`.
+2. Quita el parámetro `pidmdocente` y su criterio.
+3. En **Seguridad → Filtro adicional del contexto del usuario**:
+   `SIRASGN / SIRASGN_PIDM  es igual a  SECURITY_PRINCIPAL_ID`.
+4. Publica y cambia en `src/config.js`:
+   `API.lista.version = '1.2.0'` y `LISTA_FILTRADA_POR_SESION = true`.
+
+Con eso, la tarjeta ya no llama a `x-docente-sesion` y el listado queda
+limitado al docente autenticado desde el servidor.
+
+## 6. Fuera del alcance de este cambio
+
+El acta habilita la tarjeta también para personal administrativo. Un
+administrativo no tiene NRC asignados (SIRASGN), así que verá el mensaje "No
+tienes estudiantes…". Para ellos hace falta otra API (padrón por facultad o
+programa) y la definición del filtro con Bienestar Universitario.
