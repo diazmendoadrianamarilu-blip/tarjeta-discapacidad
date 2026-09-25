@@ -1,3 +1,5 @@
+/* eslint-env browser */
+
 const CLAVES_PIDM = ['pidm', 'PIDM', 'bannerPidm', 'person_pidm', 'erpId'];
 
 function valorUtil(v) {
@@ -41,12 +43,12 @@ export function leerPayloadJwt(jwt) {
     );
     return JSON.parse(texto);
   } catch (err) {
-    console.warn('No se pudo decodificar el JWT:', err);
+    console.warn('Error al decodificar JWT:', err);
     return null;
   }
 }
 
-export async function resolverDocente({ getExtensionJwt }) {
+export async function resolverDocente(getExtensionJwt) {
   let pidm = null;
 
   if (typeof getExtensionJwt === 'function') {
@@ -60,15 +62,9 @@ export async function resolverDocente({ getExtensionJwt }) {
         }
       }
     } catch (err) {
-      console.error('Error al obtener JWT', err);
+      console.error('[identidad] Error al obtener JWT', err);
     }
   }
 
-  return { 
-    pidm: pidm || null, 
-    bannerId: null, 
-    nombre: null, 
-    origen: pidm ? 'JWT' : null, 
-    diagnostico: null 
-  };
+  return { pidm };
 }

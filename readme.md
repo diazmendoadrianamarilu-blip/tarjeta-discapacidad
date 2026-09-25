@@ -36,7 +36,7 @@ Business Process APIs (`userTokenBusinessProcessQuery` en
 ```
 GET x-docente-sesion
     Accept: application/vnd.hedtech.integration.v1.0.0+json
-GET x-discapacidad-docente?pidmdocente=<pidm>&term=202646
+GET x-bienestar-docente-lista?pidmdocente=<pidm>&term=202646
     Accept: application/vnd.hedtech.integration.v1.1.0+json
 GET x-discapacidad-detalle?idalumno=<SPRIDEN_ID>&term=202646
     Accept: application/vnd.hedtech.integration.v1.0.0+json
@@ -51,7 +51,7 @@ Flujo:
 1. `x-docente-sesion`: Banner devuelve el PIDM del usuario autenticado
    (`SPRIDEN_PIDM = SECURITY_PRINCIPAL_ID`). No se lee ningún identificador del
    navegador.
-2. `x-discapacidad-docente`: alumnos con discapacidad matriculados en los NRC del
+2. `x-bienestar-docente-lista`: alumnos con discapacidad matriculados en los NRC del
    docente. Si no hay filas, se muestra el mensaje "No tienes estudiantes con
    discapacidad en tus cursos".
 3. `x-discapacidad-detalle`: ficha del alumno. También completa la carrera en el
@@ -72,7 +72,7 @@ se usa `PERIODO` de `src/config.js`.
      búscala con el buscador ("Experience").
    - Si hay varias, la correcta es la que tiene la misma clave de API que
      aparece en Experience Setup para este ambiente.
-   - En esa aplicación, revisa que `x-docente-sesion`, `x-discapacidad-docente`
+   - En esa aplicación, revisa que `x-docente-sesion`, `x-bienestar-docente-lista`
      y `x-discapacidad-detalle` estén entre los recursos a los que tiene
      acceso. Si no están, agrégalas.
 2. **API Designer**: las tres publicadas con *Autenticación del usuario*. El
@@ -122,12 +122,12 @@ propiedades. Los nombres de propiedad son los que ya lee la tarjeta:
 - Después de publicarla, cambia `API.detalle.version` a `'1.1.0'` en
   `src/config.js`.
 
-## 5. Recomendado antes de producción: `x-discapacidad-docente` 1.2.0
+## 5. Recomendado antes de producción: `x-bienestar-docente-lista` 1.0.0
 
 Hoy el PIDM del docente viaja como parámetro (`pidmdocente`). Alguien que
 manipule la página podría pedir la lista de otro docente. Para cerrarlo:
 
-1. Crea la versión 1.2.0 de `x-discapacidad-docente`.
+1. Crea la versión 1.0.0 de `x-bienestar-docente-lista`.
 2. Quita el parámetro `pidmdocente` y su criterio.
 3. En **Seguridad → Filtro adicional del contexto del usuario**:
    `SIRASGN / SIRASGN_PIDM  es igual a  SECURITY_PRINCIPAL_ID`.

@@ -70,11 +70,11 @@ export const PERIODO = '202646';
    viaja en el encabezado Accept. */
 export const API = {
   sesion: { recurso: 'x-docente-sesion', version: '1.0.0' },
-  lista: { recurso: 'x-discapacidad-docente', version: '1.1.0' },
+  lista: { recurso: 'x-bienestar-docente-lista', version: '1.1.0' },
   detalle: { recurso: 'x-discapacidad-detalle', version: '1.0.0' },
 };
 
-/* true cuando x-discapacidad-docente tenga el filtro de contexto
+/* true cuando x-bienestar-docente-lista tenga el filtro de contexto
    SIRASGN_PIDM = SECURITY_PRINCIPAL_ID (ver docs/api-designer.md). En ese caso
    la tarjeta no envía el PIDM y se omite la llamada a x-docente-sesion. */
 export const LISTA_FILTRADA_POR_SESION = false;
