@@ -70,14 +70,19 @@ export const PERIODO = '202646';
    viaja en el encabezado Accept. */
 export const API = {
   sesion: { recurso: 'x-docente-sesion', version: '1.0.0' },
-  lista: { recurso: 'x-bienestar-docente-lista', version: '1.1.0' },
+  persona: { recurso: 'x-persona-pidm', version: '1.0.0' },
+  // 1.0.2: filtra solo por sesión y trae los datos de la ficha (SGBSTDN/STVMAJR).
+  // respaldo: si Ethos responde 406 (versión aún no registrada), se usa 1.0.1.
+  lista: { recurso: 'x-bienestar-lista-sesion', version: '1.0.2', respaldo: '1.0.1' },
   detalle: { recurso: 'x-discapacidad-detalle', version: '1.0.0' },
 };
 
-/* true cuando x-bienestar-docente-lista tenga el filtro de contexto
-   SIRASGN_PIDM = SECURITY_PRINCIPAL_ID (ver docs/api-designer.md). En ese caso
-   la tarjeta no envía el PIDM y se omite la llamada a x-docente-sesion. */
-export const LISTA_FILTRADA_POR_SESION = false;
+/* true: x-bienestar-lista-sesion 1.0.1 filtra SIRASGN_PIDM = SECURITY_PRINCIPAL_ID
+   en el servidor. La tarjeta no envía parámetros (ni PIDM ni term) y omite la
+   llamada a x-docente-sesion. El periodo de la lista es el valor predefinido
+   de term en API Designer (202646): para cambiarlo hay que republicar la API.
+   PERIODO y la configuración de la tarjeta solo afectan textos y la ficha. */
+export const LISTA_FILTRADA_POR_SESION = true;
 
 /* Muestra el panel técnico cuando falla la identificación o una API. */
 export const MOSTRAR_DIAGNOSTICO = true;

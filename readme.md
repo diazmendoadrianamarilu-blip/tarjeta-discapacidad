@@ -37,7 +37,7 @@ Business Process APIs (`userTokenBusinessProcessQuery` en
 GET x-docente-sesion
     Accept: application/vnd.hedtech.integration.v1.0.0+json
 GET x-bienestar-docente-lista?pidmdocente=<pidm>&term=202646
-    Accept: application/vnd.hedtech.integration.v1.1.0+json
+    Accept: application/vnd.hedtech.integration.v1.0.1+json
 GET x-discapacidad-detalle?idalumno=<SPRIDEN_ID>&term=202646
     Accept: application/vnd.hedtech.integration.v1.0.0+json
 ```
@@ -86,58 +86,15 @@ Si algo falla, el panel amarillo de la tarjeta muestra la API, el estado HTTP y
 el mensaje de Ethos. Para ocultarlo en producción, cambia
 `MOSTRAR_DIAGNOSTICO` a `false`.
 
-## 4. Pendiente: `x-discapacidad-detalle` 1.1.0 (datos de contacto y ajustes)
+## 4. Ficha de detalle y seguridad del listado
 
-La versión 1.0.0 no devuelve fecha de nacimiento, correo, teléfono, dirección
-ni ajustes razonables. Mientras no se publique la 1.1.0, la ficha muestra "No
-registrado" en esos campos. Para completarla, crea la versión 1.1.0 sobre la
-misma consulta y agrega estas uniones **LEFT** (todas por PIDM) con estas
-propiedades. Los nombres de propiedad son los que ya lee la tarjeta:
+Ver [ADECUACIONES.md](ADECUACIONES.md): la ficha muestra solo los campos que
+devuelve `x-discapacidad-detalle` 1.0.0 (ID, carrera, campus, programa, nivel,
+tipos de discapacidad y vigencias), y se entrega el JSON de
+`x-bienestar-lista-sesion` 1.0.0 (API nueva) con el filtro
+`SIRASGN_PIDM = SECURITY_PRINCIPAL_ID`.
 
-| Entidad (left join) | Unión | Columna | Propiedad |
-|---|---|---|---|
-| SPBPERS | `SPBPERS_PIDM = SPRIDEN_PIDM` | `SPBPERS_BIRTH_DATE` | `fechaNacimiento` |
-| GOREMAL | `GOREMAL_PIDM = SPRIDEN_PIDM` | `GOREMAL_EMAIL_ADDRESS` | `correo` |
-| | | `GOREMAL_PREFERRED_IND` | `correoPreferido` |
-| | | `GOREMAL_STATUS_IND` | `correoEstado` |
-| SPRTELE | `SPRTELE_PIDM = SPRIDEN_PIDM` | `SPRTELE_PHONE_AREA` | `telefonoArea` |
-| | | `SPRTELE_PHONE_NUMBER` | `telefonoNumero` |
-| | | `SPRTELE_PRIMARY_IND` | `telefonoPrincipal` |
-| | | `SPRTELE_STATUS_IND` | `telefonoEstado` |
-| SPRADDR | `SPRADDR_PIDM = SPRIDEN_PIDM` | `SPRADDR_STREET_LINE1` | `direccion` |
-| | | `SPRADDR_CITY` | `ciudad` |
-| | | `SPRADDR_TO_DATE` | `direccionHasta` |
-| | | `SPRADDR_STATUS_IND` | `direccionEstado` |
-| SGRDSER | `SGRDSER_PIDM = SGRDISA_PIDM` y `SGRDSER_DISA_CODE = SGRDISA_DISA_CODE` | `SGRDSER_SPSR_CODE` | `ajusteCodigo` |
-| STVSPSR | `STVSPSR_CODE = SGRDSER_SPSR_CODE` | `STVSPSR_DESC` | `ajuste` |
-
-- No pongas filtros de estado en *criteria*: con uniones LEFT, un filtro sobre
-  la tabla derecha elimina a los alumnos sin correo o sin teléfono. La tarjeta
-  ya elige el correo preferido, el teléfono principal y la dirección vigente
-  entre las filas.
-- Verifica en API Designer los nombres de columna de SGRDSER/STVSPSR (bloque
-  *Disability Services* de SGADISA). En este ambiente SGRDSER estaba vacía.
-- Si USS guarda el correo institucional con un código propio (GOREMAL_EMAL_CODE),
-  agrega esa columna como `tipoCorreo` y avísame para priorizarla.
-- Después de publicarla, cambia `API.detalle.version` a `'1.1.0'` en
-  `src/config.js`.
-
-## 5. Recomendado antes de producción: `x-bienestar-docente-lista` 1.0.0
-
-Hoy el PIDM del docente viaja como parámetro (`pidmdocente`). Alguien que
-manipule la página podría pedir la lista de otro docente. Para cerrarlo:
-
-1. Crea la versión 1.0.0 de `x-bienestar-docente-lista`.
-2. Quita el parámetro `pidmdocente` y su criterio.
-3. En **Seguridad → Filtro adicional del contexto del usuario**:
-   `SIRASGN / SIRASGN_PIDM  es igual a  SECURITY_PRINCIPAL_ID`.
-4. Publica y cambia en `src/config.js`:
-   `API.lista.version = '1.2.0'` y `LISTA_FILTRADA_POR_SESION = true`.
-
-Con eso, la tarjeta ya no llama a `x-docente-sesion` y el listado queda
-limitado al docente autenticado desde el servidor.
-
-## 6. Fuera del alcance de este cambio
+## 5. Fuera del alcance de este cambio
 
 El acta habilita la tarjeta también para personal administrativo. Un
 administrativo no tiene NRC asignados (SIRASGN), así que verá el mensaje "No

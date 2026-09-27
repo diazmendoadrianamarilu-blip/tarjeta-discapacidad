@@ -1,0 +1,482 @@
+{
+  "metaData": {
+    "description": "GAP Capacidad 8 - Lista los alumnos con discapacidad registrada en SGADISA matriculados en las secciones (NRC) que dicta el docente autenticado en un periodo. Parametros: pidmdocente, term. Seguridad: SIRASGN_PIDM = SECURITY_PRINCIPAL_ID.",
+    "domain": "SATURN",
+    "majorVersion": 1,
+    "resource": "x-bienestar-docente-lista",
+    "semanticVersion": "1.0.2",
+    "status": "DRAFT"
+  },
+  "query": {
+    "apiSpecificationId": "eafe46a6-f8ed-4896-9baa-1d27b27eb54f",
+    "appVersion": "9.43.0.1",
+    "bindParameters": [
+      {
+        "datatype": "number",
+        "defaultValue": "0",
+        "description": "PIDM del docente (SIRASGN_PIDM)",
+        "paramName": "pidmdocente"
+      },
+      {
+        "datatype": "string",
+        "defaultValue": "202646",
+        "description": "Periodo academico",
+        "paramName": "term"
+      }
+    ],
+    "criteria": [
+      {
+        "nestedCriteria": [
+          {
+            "condition": null,
+            "expression": "pidmdocente",
+            "nameValueType": "field",
+            "expressionDataType": "number",
+            "entityName": "SIRASGN",
+            "expressionEntityName": null,
+            "dataType": "number",
+            "expressionParams": null,
+            "name": "SIRASGN_PIDM",
+            "expressionType": "parameter",
+            "operator": "="
+          },
+          {
+            "condition": "and",
+            "expression": "term",
+            "nameValueType": "field",
+            "expressionDataType": "string",
+            "entityName": "SIRASGN",
+            "expressionEntityName": null,
+            "dataType": "string",
+            "expressionParams": null,
+            "name": "SIRASGN_TERM_CODE",
+            "expressionType": "parameter",
+            "operator": "="
+          },
+          {
+            "condition": "and",
+            "expression": "null",
+            "nameValueType": "field",
+            "expressionDataType": "string",
+            "entityName": "SPRIDEN",
+            "expressionEntityName": null,
+            "dataType": "string",
+            "expressionParams": null,
+            "name": "SPRIDEN_CHANGE_IND",
+            "expressionType": "literal",
+            "operator": "is"
+          }
+        ]
+      }
+    ],
+    "description": "GAP Capacidad 8 - Lista los alumnos con discapacidad registrada en SGADISA matriculados en las secciones (NRC) que dicta el docente autenticado en un periodo. Parametros: pidmdocente, term. Seguridad: SIRASGN_PIDM = SECURITY_PRINCIPAL_ID.",
+    "domain": "SATURN",
+    "entities": [
+      {
+        "name": "SPRIDEN"
+      },
+      {
+        "joinType": "inner",
+        "name": "SGRDISA",
+        "joinConditions": [
+          {
+            "expression": "SGRDISA_PIDM",
+            "expressionDataType": "number",
+            "entityName": "SPRIDEN",
+            "expressionEntityName": "SGRDISA",
+            "dataType": "number",
+            "name": "SPRIDEN_PIDM",
+            "operator": "="
+          }
+        ]
+      },
+      {
+        "joinType": "inner",
+        "name": "STVDISA",
+        "joinConditions": [
+          {
+            "expression": "STVDISA_CODE",
+            "expressionDataType": "string",
+            "entityName": "SGRDISA",
+            "expressionEntityName": "STVDISA",
+            "dataType": "string",
+            "name": "SGRDISA_DISA_CODE",
+            "operator": "="
+          }
+        ]
+      },
+      {
+        "joinType": "inner",
+        "name": "SFRSTCR",
+        "joinConditions": [
+          {
+            "expression": "SFRSTCR_PIDM",
+            "expressionDataType": "number",
+            "entityName": "SPRIDEN",
+            "expressionEntityName": "SFRSTCR",
+            "dataType": "number",
+            "name": "SPRIDEN_PIDM",
+            "operator": "="
+          }
+        ]
+      },
+      {
+        "joinType": "inner",
+        "name": "SSBSECT",
+        "joinConditions": [
+          {
+            "expression": "SSBSECT_TERM_CODE",
+            "expressionDataType": "string",
+            "entityName": "SFRSTCR",
+            "expressionEntityName": "SSBSECT",
+            "dataType": "string",
+            "name": "SFRSTCR_TERM_CODE",
+            "operator": "="
+          },
+          {
+            "condition": "and",
+            "expression": "SSBSECT_CRN",
+            "expressionDataType": "string",
+            "entityName": "SFRSTCR",
+            "expressionEntityName": "SSBSECT",
+            "dataType": "string",
+            "name": "SFRSTCR_CRN",
+            "operator": "="
+          }
+        ]
+      },
+      {
+        "joinType": "inner",
+        "name": "SIRASGN",
+        "joinConditions": [
+          {
+            "expression": "SIRASGN_TERM_CODE",
+            "expressionDataType": "string",
+            "entityName": "SSBSECT",
+            "expressionEntityName": "SIRASGN",
+            "dataType": "string",
+            "name": "SSBSECT_TERM_CODE",
+            "operator": "="
+          },
+          {
+            "condition": "and",
+            "expression": "SIRASGN_CRN",
+            "expressionDataType": "string",
+            "entityName": "SSBSECT",
+            "expressionEntityName": "SIRASGN",
+            "dataType": "string",
+            "name": "SSBSECT_CRN",
+            "operator": "="
+          }
+        ]
+      }
+    ],
+    "idProperty": "",
+    "maxPageSize": 500,
+    "metaData": {
+      "entities": [
+        {
+          "description": "Student Course Registration Repeating Table",
+          "domain": "SATURN",
+          "domainType": "TABLE",
+          "entityName": "SFRSTCR"
+        },
+        {
+          "description": "Student Disability Services Table",
+          "domain": "SATURN",
+          "domainType": "TABLE",
+          "entityName": "SGRDISA"
+        },
+        {
+          "description": "Faculty Member Instructional Assignment  Repeating Table",
+          "domain": "SATURN",
+          "domainType": "TABLE",
+          "entityName": "SIRASGN"
+        },
+        {
+          "description": "Person Identification/Name Repeating Table",
+          "domain": "SATURN",
+          "domainType": "TABLE",
+          "entityName": "SPRIDEN"
+        },
+        {
+          "description": "Section General Information Base Table",
+          "domain": "SATURN",
+          "domainType": "TABLE",
+          "entityName": "SSBSECT"
+        },
+        {
+          "description": "Disability Type Validation Table",
+          "domain": "SATURN",
+          "domainType": "TABLE",
+          "entityName": "STVDISA"
+        }
+      ]
+    },
+    "name": "x-bienestar-docente-lista",
+    "queryStatus": "PUBLISHED",
+    "schema": {
+      "apellidos": {
+        "nullable": "N",
+        "propertyName": "apellidos",
+        "entityName": "SPRIDEN",
+        "dataScale": null,
+        "valueType": "COLUMN",
+        "length": 240,
+        "description": "This field defines the last name of person.",
+        "dataPrecision": null,
+        "label": "Apellidos",
+        "title": "SPRIDEN_LAST_NAME",
+        "type": "string"
+      },
+      "idAlumno": {
+        "nullable": "N",
+        "propertyName": "idAlumno",
+        "entityName": "SPRIDEN",
+        "dataScale": null,
+        "valueType": "COLUMN",
+        "length": 36,
+        "description": "This field defines the identification number used to access person on-line.",
+        "dataPrecision": null,
+        "label": "Codigo del alumno",
+        "title": "SPRIDEN_ID",
+        "type": "string"
+      },
+      "periodo": {
+        "nullable": "N",
+        "propertyName": "periodo",
+        "entityName": "SIRASGN",
+        "dataScale": null,
+        "valueType": "COLUMN",
+        "length": 24,
+        "description": "Term of the faculty member assignment",
+        "dataPrecision": null,
+        "label": "Periodo",
+        "title": "SIRASGN_TERM_CODE",
+        "type": "string"
+      },
+      "codDiscapacidad": {
+        "nullable": "N",
+        "propertyName": "codDiscapacidad",
+        "entityName": "STVDISA",
+        "dataScale": null,
+        "valueType": "COLUMN",
+        "length": 8,
+        "description": "Disability code designating what type of disability exists",
+        "dataPrecision": null,
+        "label": "Cod. discapacidad",
+        "title": "STVDISA_CODE",
+        "type": "string"
+      },
+      "esPrincipal": {
+        "nullable": "Y",
+        "propertyName": "esPrincipal",
+        "entityName": "SGRDISA",
+        "dataScale": null,
+        "valueType": "COLUMN",
+        "length": 4,
+        "description": "Primary Disability Indicator",
+        "dataPrecision": null,
+        "label": "Es principal",
+        "title": "SGRDISA_PRIMARY_IND",
+        "type": "string"
+      },
+      "codMateria": {
+        "nullable": "N",
+        "propertyName": "codMateria",
+        "entityName": "SSBSECT",
+        "dataScale": null,
+        "valueType": "COLUMN",
+        "length": 16,
+        "description": "This field is required in order to add a section.",
+        "dataPrecision": null,
+        "label": "Cod. materia",
+        "title": "SSBSECT_SUBJ_CODE",
+        "type": "string"
+      },
+      "nombres": {
+        "nullable": "Y",
+        "propertyName": "nombres",
+        "entityName": "SPRIDEN",
+        "dataScale": null,
+        "valueType": "COLUMN",
+        "length": 240,
+        "description": "This field identifies the first name of person.",
+        "dataPrecision": null,
+        "label": "Nombres",
+        "title": "SPRIDEN_FIRST_NAME",
+        "type": "string"
+      },
+      "tipoDiscapacidad": {
+        "nullable": "N",
+        "propertyName": "tipoDiscapacidad",
+        "entityName": "STVDISA",
+        "dataScale": null,
+        "valueType": "COLUMN",
+        "length": 120,
+        "description": "Disability description clarifying what the area of disability is",
+        "dataPrecision": null,
+        "label": "Tipo de discapacidad",
+        "title": "STVDISA_DESC",
+        "type": "string"
+      },
+      "seccion": {
+        "nullable": "N",
+        "propertyName": "seccion",
+        "entityName": "SSBSECT",
+        "dataScale": null,
+        "valueType": "COLUMN",
+        "length": 12,
+        "description": "This field identifies the section number of a course.",
+        "dataPrecision": null,
+        "label": "Seccion",
+        "title": "SSBSECT_SEQ_NUMB",
+        "type": "string"
+      },
+      "curso": {
+        "nullable": "Y",
+        "propertyName": "curso",
+        "entityName": "SSBSECT",
+        "dataScale": null,
+        "valueType": "COLUMN",
+        "length": 120,
+        "description": "Titulo del curso a nivel de seccion (override de SCBCRSE_TITLE).",
+        "dataPrecision": null,
+        "label": "Curso",
+        "title": "SSBSECT_CRSE_TITLE",
+        "type": "string"
+      },
+      "numCurso": {
+        "nullable": "N",
+        "propertyName": "numCurso",
+        "entityName": "SSBSECT",
+        "dataScale": null,
+        "valueType": "COLUMN",
+        "length": 20,
+        "description": "This field is used to the determine the course number.",
+        "dataPrecision": null,
+        "label": "Nro. curso",
+        "title": "SSBSECT_CRSE_NUMB",
+        "type": "string"
+      },
+      "periodoDiscapacidad": {
+        "nullable": "N",
+        "propertyName": "periodoDiscapacidad",
+        "entityName": "SGRDISA",
+        "dataScale": null,
+        "valueType": "COLUMN",
+        "length": 24,
+        "description": "Disability Term Code",
+        "dataPrecision": null,
+        "label": "Periodo del registro",
+        "title": "SGRDISA_TERM_CODE",
+        "type": "string"
+      },
+      "nrc": {
+        "nullable": "N",
+        "propertyName": "nrc",
+        "entityName": "SSBSECT",
+        "dataScale": null,
+        "valueType": "COLUMN",
+        "length": 20,
+        "description": "This field will display the Course Reference Number (CRN).",
+        "dataPrecision": null,
+        "label": "NRC / Aula",
+        "title": "SSBSECT_CRN",
+        "type": "string"
+      }
+    },
+    "securityRoles": [
+      "SELFSERVICE-FACULTY"
+    ],
+    "selects": [
+      {
+        "entityName": "SPRIDEN",
+        "valueType": "COLUMN",
+        "dataType": "string",
+        "name": "SPRIDEN_FIRST_NAME"
+      },
+      {
+        "entityName": "SPRIDEN",
+        "valueType": "COLUMN",
+        "dataType": "string",
+        "name": "SPRIDEN_ID"
+      },
+      {
+        "entityName": "SPRIDEN",
+        "valueType": "COLUMN",
+        "dataType": "string",
+        "name": "SPRIDEN_LAST_NAME"
+      },
+      {
+        "entityName": "SGRDISA",
+        "valueType": "COLUMN",
+        "dataType": "string",
+        "name": "SGRDISA_PRIMARY_IND"
+      },
+      {
+        "entityName": "SGRDISA",
+        "valueType": "COLUMN",
+        "dataType": "string",
+        "name": "SGRDISA_TERM_CODE"
+      },
+      {
+        "entityName": "STVDISA",
+        "valueType": "COLUMN",
+        "dataType": "string",
+        "name": "STVDISA_CODE"
+      },
+      {
+        "entityName": "STVDISA",
+        "valueType": "COLUMN",
+        "dataType": "string",
+        "name": "STVDISA_DESC"
+      },
+      {
+        "entityName": "SSBSECT",
+        "valueType": "COLUMN",
+        "dataType": "string",
+        "name": "SSBSECT_CRN"
+      },
+      {
+        "entityName": "SSBSECT",
+        "valueType": "COLUMN",
+        "dataType": "string",
+        "name": "SSBSECT_CRSE_NUMB"
+      },
+      {
+        "entityName": "SSBSECT",
+        "valueType": "COLUMN",
+        "dataType": "string",
+        "name": "SSBSECT_CRSE_TITLE"
+      },
+      {
+        "entityName": "SSBSECT",
+        "valueType": "COLUMN",
+        "dataType": "string",
+        "name": "SSBSECT_SEQ_NUMB"
+      },
+      {
+        "entityName": "SSBSECT",
+        "valueType": "COLUMN",
+        "dataType": "string",
+        "name": "SSBSECT_SUBJ_CODE"
+      },
+      {
+        "entityName": "SIRASGN",
+        "valueType": "COLUMN",
+        "dataType": "string",
+        "name": "SIRASGN_TERM_CODE"
+      }
+    ],
+    "semanticVersion": "1.0.2",
+    "sysInd": "N",
+    "userSecurity": {
+      "expression": "%%SECURITY_PRINCIPAL_ID%%",
+      "entityName": "SIRASGN",
+      "name": "SIRASGN_PIDM",
+      "rowLevelSecurityEnabled": true,
+      "operator": "="
+    }
+  }
+}

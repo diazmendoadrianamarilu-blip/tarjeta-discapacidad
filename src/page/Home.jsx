@@ -2,12 +2,13 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { usePageControl, useData } from '@ellucian/experience-extension-utils';
 
-import { C, CHIPS } from '../config';
+import { C, CHIPS, LISTA_FILTRADA_POR_SESION } from '../config';
 import { resolverDocente } from '../api/identidad';
 import { iniciales, listarAlumnosDelDocente } from '../api/discapacidad';
 import { crearXlsx, descargarBlob } from '../api/excel';
+import { useEthosFetch } from '../api/useEthosFetch';
 import {
-  Aviso, Encabezado, NotaLegal, Pagina, s,
+  Aviso, Encabezado, NotaLegal, Pagina, describirError, s,
 } from '../components/Estructura';
 import {
   IconoAccesibilidad, IconoDescarga, IconoFlechaDerecha, IconoPersonas,
@@ -154,8 +155,8 @@ function Chip({ discapacidad }) {
 
 function FilaAlumno({ alumno, onAbrir }) {
   const [principal, ...otras] = alumno.discapacidades;
-  const seccion = alumno.secciones[0];
-  const detalleAcademico = alumno.carrera || (seccion ? seccion.curso : null);
+  const cursos = alumno.secciones.map((x) => x.curso).filter(Boolean).join(' / ');
+  const nrcs = alumno.secciones.map((x) => x.nrc).join(', ');
 
   return (
     <button type="button" className="bu-fila" style={e.fila} onClick={() => onAbrir(alumno)}>
@@ -168,7 +169,9 @@ function FilaAlumno({ alumno, onAbrir }) {
           {otras.map((d) => <Chip key={d.codigo} discapacidad={d} />)}
         </div>
         <div style={e.meta}>
-          {detalleAcademico && <span>{detalleAcademico}</span>}
+          {cursos && <span>{cursos}</span>}
+          {nrcs && <span>NRC {nrcs}</span>}
+          {alumno.carrera && <span>{alumno.carrera}</span>}
           <span style={{ color: C.textoTenue }}>Periodo {alumno.periodo}</span>
         </div>
       </div>
@@ -218,42 +221,50 @@ function exportarExcel(alumnos, term) {
   descargarBlob(crearXlsx(filas, 'Alumnos'), `alumnos-discapacidad-${term}-${fecha}.xlsx`);
 }
 
-export default function Home({ term = '202646' }) {
-  const { getEthosQuery, getExtensionJwt } = useData(); 
+export default function Home({ term }) {
+  const authenticatedEthosFetch = useEthosFetch();
+  const { getExtensionJwt } = useData();
   const { setPageTitle } = usePageControl();
   const history = useHistory();
 
-  const [estado, setEstado] = useState('cargando');
-  const [errorMsg, setErrorMsg] = useState(null);
+  const [estado, setEstado] = useState('cargando'); // cargando | listo | error
+  const [error, setError] = useState(null);
   const [alumnos, setAlumnos] = useState([]);
   const solicitud = useRef(0);
+
+  // getExtensionJwt puede cambiar de referencia en cada render: se lee por ref
+  // para no volver a disparar la carga.
+  const jwtRef = useRef(getExtensionJwt);
+  jwtRef.current = getExtensionJwt;
 
   const cargar = useCallback(async () => {
     const id = solicitud.current + 1;
     solicitud.current = id;
     setEstado('cargando');
-    setErrorMsg(null);
+    setError(null);
 
     try {
-      // 1. Resolvemos quién eres leyendo tu sesión 
-      const { pidm } = await resolverDocente(getExtensionJwt);
-      if (!pidm) {
-        throw new Error('No pudimos identificar tu PIDM en la sesión actual.');
+      // 1. Identidad (secuencial): x-docente-sesion → respaldo JWT erpId + x-persona-pidm.
+      let pidm = null;
+      if (!LISTA_FILTRADA_POR_SESION) {
+        const docente = await resolverDocente(authenticatedEthosFetch, jwtRef.current);
+        pidm = docente.pidm;
       }
-
-      // 2. Buscamos tus alumnos pasándole a Ellucian tu PIDM y el conector oficial
-      const lista = await listarAlumnosDelDocente(getEthosQuery, { pidmdocente: pidm, term });
       if (solicitud.current !== id) return;
-      
+
+      // 2. Alumnos con discapacidad matriculados en los NRC del docente (pidmdocente numérico).
+      const lista = await listarAlumnosDelDocente(authenticatedEthosFetch, { pidm, term });
+      if (solicitud.current !== id) return;
+      // La carrera y los datos de la ficha llegan en la misma lista.
       setAlumnos(lista);
       setEstado('listo');
     } catch (err) {
       if (solicitud.current !== id) return;
       console.error('[Bienestar]', err);
-      setErrorMsg(err.message || 'Ocurrió un problema al consultar la información.');
+      setError(err);
       setEstado('error');
     }
-  }, [getEthosQuery, getExtensionJwt, term]);
+  }, [authenticatedEthosFetch, term]);
 
   useEffect(() => {
     if (setPageTitle) setPageTitle('Bienestar Universitario');
@@ -284,13 +295,19 @@ export default function Home({ term = '202646' }) {
       </div>
     );
   } else if (estado === 'error') {
+    const esIdentidad = error && error.tipo === 'identidad';
     cuerpo = (
       <Aviso
         tono="error"
-        titulo="No pudimos cargar la lista de estudiantes"
-        texto={errorMsg}
+        titulo={esIdentidad
+          ? 'No pudimos identificar tu usuario docente en Banner'
+          : 'No pudimos cargar la lista de estudiantes'}
+        texto={esIdentidad
+          ? 'Tu sesión no devolvió un registro docente. Si el problema continúa, comunícate con la Dirección de Tecnología y Transformación.'
+          : 'Ocurrió un problema al consultar la información. Intenta nuevamente en unos segundos.'}
         accion={cargar}
         textoAccion="Reintentar"
+        detalle={esIdentidad ? error.intentos.join('\n') : describirError(error)}
       />
     );
   } else if (alumnos.length === 0) {

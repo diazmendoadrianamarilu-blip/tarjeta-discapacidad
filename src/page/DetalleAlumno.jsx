@@ -9,7 +9,7 @@ import {
   Aviso, Encabezado, NotaLegal, Pagina, describirError, s,
 } from '../components/Estructura';
 import {
-  IconoCalendario, IconoCorreo, IconoPersona, IconoTelefono, IconoUbicacion,
+  IconoEscudo, IconoPersona, IconoPersonas, IconoUbicacion,
 } from '../components/Iconos';
 
 const e = {
@@ -146,9 +146,9 @@ function FichaCargando({ resumen }) {
   );
 }
 
-function vigencia(ficha) {
-  const desde = formatearFecha(ficha.vigenteDesde);
-  const hasta = formatearFecha(ficha.vigenteHasta);
+function vigencia(d) {
+  const desde = formatearFecha(d.vigenteDesde);
+  const hasta = formatearFecha(d.vigenteHasta);
   if (desde && hasta) return `Vigencia: del ${desde} al ${hasta}`;
   if (desde) return `Vigente desde el ${desde}`;
   if (hasta) return `Vigente hasta el ${hasta}`;
@@ -217,7 +217,8 @@ export default function DetalleAlumno({ idAlumno, term }) {
   } else {
     const carrera = ficha.carrera || (resumen && resumen.carrera) || null;
     const tipos = ficha.discapacidades.map((d) => d.descripcion).join(', ');
-    const textoVigencia = vigencia(ficha);
+    // Si no hay registros vigentes se muestran todos, marcados como vencidos en el estado.
+    const ajustes = ficha.ajustesActivos.length > 0 ? ficha.ajustesActivos : ficha.discapacidades;
     const colorEstado = ficha.vigente
       ? { background: C.activoFondo, borderColor: C.activoBorde, color: C.activoTexto }
       : { background: '#FFFBEB', borderColor: '#FDE68A', color: '#B45309' };
@@ -237,14 +238,10 @@ export default function DetalleAlumno({ idAlumno, term }) {
         <div style={e.contenido}>
           <hr style={e.separador} />
           <div className="bu-dos-columnas" style={e.dosColumnas}>
-            <Dato
-              icono={<IconoCalendario tamano={16} />}
-              etiqueta="Fecha de nacimiento"
-              valor={formatearFecha(ficha.fechaNacimiento)}
-            />
-            <Dato icono={<IconoCorreo tamano={16} />} etiqueta="Correo institucional" valor={ficha.correo} />
-            <Dato icono={<IconoTelefono tamano={16} />} etiqueta="Teléfono de contacto" valor={ficha.telefono} />
-            <Dato icono={<IconoUbicacion tamano={16} />} etiqueta="Dirección registrada" valor={ficha.direccion} />
+            <Dato icono={<IconoPersona tamano={16} />} etiqueta="Código (ID Banner)" valor={ficha.idAlumno} />
+            <Dato icono={<IconoUbicacion tamano={16} />} etiqueta="Campus" valor={ficha.campus} />
+            <Dato icono={<IconoEscudo tamano={16} />} etiqueta="Programa" valor={ficha.programa} />
+            <Dato icono={<IconoPersonas tamano={16} />} etiqueta="Nivel" valor={ficha.nivel} />
           </div>
 
           <hr style={e.separador} />
@@ -255,13 +252,20 @@ export default function DetalleAlumno({ idAlumno, term }) {
           </div>
 
           <div style={e.ajustes}>
-            <p style={e.ajustesTitulo}>Ajustes razonables</p>
-            <p style={e.ajustesTexto}>
-              {ficha.ajustes.length > 0
-                ? ficha.ajustes.join(', ')
-                : 'No hay ajustes razonables registrados en SGADISA para este estudiante.'}
-            </p>
-            {textoVigencia && <p style={e.ajustesVigencia}>{textoVigencia}</p>}
+            <p style={e.ajustesTitulo}>Ajustes razonables activos</p>
+            {ajustes.length > 0 ? ajustes.map((d) => (
+              <div key={d.codigo}>
+                <p style={e.ajustesTexto}>
+                  {d.descripcion}
+                  {d.principal ? ' (principal)' : ''}
+                </p>
+                <p style={e.ajustesVigencia}>{vigencia(d) || 'Sin fechas de vigencia registradas'}</p>
+              </div>
+            )) : (
+              <p style={e.ajustesTexto}>
+                No hay ajustes razonables registrados en SGADISA para este estudiante.
+              </p>
+            )}
           </div>
         </div>
       </section>
