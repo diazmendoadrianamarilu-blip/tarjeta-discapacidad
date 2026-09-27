@@ -238,7 +238,7 @@ En API Designer → `x-bienestar-lista-sesion` → nuevo borrador desde **1.0.1*
 **El código ya está desplegado y no hay que tocarlo.** La tarjeta:
 - pide `x-bienestar-lista-sesion` **1.0.3** y, si Ethos responde 406, usa la 1.0.2;
 - pide `x-bienestar-cursos-sesion` 1.0.0 (títulos de los cursos). Si no existe, sigue sin títulos;
-- pide `x-bienestar-contacto-sesion` 1.0.0 solo al abrir "Datos adicionales" en la ficha. Si no existe, muestra un error en esa sección.
+- pide `x-bienestar-persona-sesion` 1.0.0 solo al abrir "Datos adicionales" en la ficha. Si no existe, muestra un error en esa sección.
 
 Por eso, a medida que publiques y registres cada API, la tarjeta la empieza a
 usar sola.
@@ -326,7 +326,7 @@ Toma como referencia `x-asignacion-docente`, pero **sin** el parámetro
 | `SCBCRSE_TITLE` | `tituloCatalogo` |
 | `SCBCRSE_EFF_TERM` | `periodoCatalogo` |
 
-#### G.3 API nueva `x-bienestar-contacto-sesion` 1.0.0 (datos personales)
+#### G.3 API nueva `x-bienestar-persona-sesion` 1.0.0 (datos personales)
 Solo alumnos con discapacidad de las secciones del docente de la sesión.
 
 - Entidades: `SPRIDEN` (base, alumno) → INNER `SGRDISA`
@@ -387,7 +387,7 @@ SPRTELE, GOREMAL, STVNATN, STVSTAT, STVCNTY. `STVATYP` es lo último.
    SIGUIENTE.
 2. En "Detalles de la API", verifica:
    - `x-bienestar-lista-sesion`: aparece v1.0.3.
-   - `x-bienestar-cursos-sesion` y `x-bienestar-contacto-sesion`: existen con
+   - `x-bienestar-cursos-sesion` y `x-bienestar-persona-sesion`: existen con
      v1.0.0 y propietario Banner Integration API.
 3. Si una API nueva no aparece, repite el procedimiento del Paso B (alta en
    Recursos propios) y vuelve a ejecutar la configuración automática.
@@ -397,7 +397,7 @@ SPRTELE, GOREMAL, STVNATN, STVSTAT, STVCNTY. `STVATYP` es lo último.
 |---|---|
 | `x-bienestar-lista-sesion` | 200 con `v1.0.3+json`; filas con `campusDesc`, `escuelaDesc`, periodos distintos si el docente los tiene |
 | `x-bienestar-cursos-sesion` | 200; filas con `nrc` y `tituloSeccion` o `tituloCatalogo` |
-| `x-bienestar-contacto-sesion` | 200 solo al abrir "Datos adicionales" en la ficha |
+| `x-bienestar-persona-sesion` | 200 solo al abrir "Datos adicionales" en la ficha |
 
 En pantalla: los alumnos agrupados por curso ("ESGE 00063 · NRC 1004 ·
 Investigación II"), con un encabezado por periodo si hay más de uno. En la

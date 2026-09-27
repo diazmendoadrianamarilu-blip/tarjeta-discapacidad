@@ -12,7 +12,7 @@ Fecha: 26-sep-2026
 | `src/config.js` | `lista: { version: '1.0.3', respaldo: '1.0.2' }`: si Ethos responde 406 con la 1.0.3, repite con la 1.0.2. `LISTA_FILTRADA_POR_SESION = true` |
 | Pantalla 2 (27-sep) | Agrupada por **periodo → curso (materia, número, NRC, título)**, con los alumnos dentro. Si un alumno lleva dos cursos con el docente, aparece en ambos. El contador muestra alumnos únicos y cantidad de cursos. El Excel sale con una fila por alumno y curso, en el mismo orden. |
 | Pantalla 3 (27-sep) | Descripción y código de campus, programa, nivel, escuela y departamento; ciclo y tutor si la API los trae; "Curso(s) contigo"; sección desplegable **Datos adicionales** (nacimiento, dirección, distrito, provincia, departamento, país, teléfono, correo) que se consulta solo al abrirla. |
-| APIs pendientes | `x-bienestar-lista-sesion` 1.0.3, `x-bienestar-cursos-sesion` 1.0.0 y `x-bienestar-contacto-sesion` 1.0.0: ver el Paso G en `docs/INSTRUCCIONES-CLAUDE-NAVEGADOR.md`. La tarjeta funciona sin ellas (con menos datos). |
+| APIs (27-sep) | Publicadas y registradas en Ethos (inquilino SaaSTest, Banner Integration API): `x-bienestar-lista-sesion` 1.0.3, `x-bienestar-cursos-sesion` 1.0.0 y `x-bienestar-persona-sesion` 1.0.0 (API Designer limita el nombre a 26 caracteres). Periodos: `STVTERM_END_DATE >= Now()`, se actualiza solo. |
 | Paginación | Corregido: si Ethos no enviaba `x-total-count`, se leía solo la primera página. |
 | Ethos Integration | `x-bienestar-lista-sesion` registrada en **Banner Integration API → Recursos propios** y sincronizada con *Recursos de configuración automática* |
 | API Designer | `x-bienestar-lista-sesion` 1.0.1 publicada sin el criterio `SIRASGN_PIDM = {pidmdocente}` (el parámetro quedó declarado, pero no se usa) |

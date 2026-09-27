@@ -367,7 +367,7 @@ function elegirTutor(filas, term) {
 
 let cacheContacto = null;
 
-/* x-bienestar-contacto-sesion trae, sin parámetros, los datos de contacto de
+/* x-bienestar-persona-sesion trae, sin parámetros, los datos de contacto de
    los alumnos con discapacidad del docente de la sesión. Se pide una sola vez
    y solo cuando se abre la sección. */
 export async function obtenerDatosPersonales(authenticatedEthosFetch, idalumno) {

@@ -79,8 +79,9 @@ export const API = {
   // existe, los grupos muestran solo materia, número y NRC.
   cursos: { recurso: 'x-bienestar-cursos-sesion', version: '1.0.0' },
   // Datos personales (SPBPERS, SPRADDR, SPRTELE, GOREMAL) de la sección
-  // desplegable de la ficha. Se pide solo al abrir esa sección.
-  contacto: { recurso: 'x-bienestar-contacto-sesion', version: '1.0.0' },
+  // desplegable de la ficha. Se pide solo al abrir esa sección. (API Designer
+  // limita el nombre a 26 caracteres: por eso "persona" y no "contacto".)
+  contacto: { recurso: 'x-bienestar-persona-sesion', version: '1.0.0' },
   detalle: { recurso: 'x-discapacidad-detalle', version: '1.0.0' },
 };
 
