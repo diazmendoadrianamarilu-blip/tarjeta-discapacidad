@@ -4,7 +4,7 @@ import { usePageControl, useData } from '@ellucian/experience-extension-utils';
 
 import { C, CHIPS, LISTA_FILTRADA_POR_SESION } from '../config';
 import { resolverDocente } from '../api/identidad';
-import { iniciales, listarAlumnosDelDocente } from '../api/discapacidad';
+import { cargarTablero, iniciales } from '../api/discapacidad';
 import { crearXlsx, descargarBlob } from '../api/excel';
 import { useEthosFetch } from '../api/useEthosFetch';
 import {
@@ -33,7 +33,54 @@ const e = {
     alignSelf: 'flex-end',
   },
   contadorNumero: { marginLeft: 12, fontSize: 18, fontWeight: 700, color: C.texto },
+  contadorDetalle: { display: 'block', marginTop: 2, fontSize: 12, color: C.textoTenue },
   lista: { display: 'flex', flexDirection: 'column', gap: 12 },
+  periodos: { display: 'flex', flexDirection: 'column', gap: 32 },
+  periodoTitulo: {
+    margin: '0 0 12px',
+    fontSize: 13,
+    fontWeight: 700,
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase',
+    color: C.textoSuave,
+  },
+  grupos: { display: 'flex', flexDirection: 'column', gap: 20 },
+  grupo: {
+    background: C.gris50,
+    border: `1px solid ${C.borde}`,
+    borderRadius: 14,
+    padding: 16,
+  },
+  grupoCabecera: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+    margin: '0 4px 12px',
+  },
+  grupoCodigo: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    columnGap: 10,
+    rowGap: 2,
+    fontSize: 13,
+    fontWeight: 600,
+    color: C.moradoTexto,
+  },
+  grupoTitulo: { margin: '2px 0 0', fontSize: 17, lineHeight: '24px', fontWeight: 600, color: C.texto },
+  grupoMeta: { margin: '2px 0 0', fontSize: 13, color: C.textoSuave },
+  grupoCuenta: {
+    flexShrink: 0,
+    fontSize: 12,
+    fontWeight: 600,
+    color: C.textoSecundario,
+    background: C.blanco,
+    border: `1px solid ${C.borde}`,
+    borderRadius: 999,
+    padding: '2px 10px',
+    whiteSpace: 'nowrap',
+  },
   fila: {
     display: 'flex',
     alignItems: 'center',
@@ -153,13 +200,11 @@ function Chip({ discapacidad }) {
   );
 }
 
-function FilaAlumno({ alumno, onAbrir }) {
+function FilaAlumno({ alumno, curso, onAbrir }) {
   const [principal, ...otras] = alumno.discapacidades;
-  const cursos = alumno.secciones.map((x) => x.curso).filter(Boolean).join(' / ');
-  const nrcs = alumno.secciones.map((x) => x.nrc).join(', ');
 
   return (
-    <button type="button" className="bu-fila" style={e.fila} onClick={() => onAbrir(alumno)}>
+    <button type="button" className="bu-fila" style={e.fila} onClick={() => onAbrir(alumno, curso)}>
       <div style={e.avatar} aria-hidden="true">{iniciales(alumno.nombres, alumno.apellidos)}</div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -169,10 +214,8 @@ function FilaAlumno({ alumno, onAbrir }) {
           {otras.map((d) => <Chip key={d.codigo} discapacidad={d} />)}
         </div>
         <div style={e.meta}>
-          {cursos && <span>{cursos}</span>}
-          {nrcs && <span>NRC {nrcs}</span>}
+          <span>{alumno.idAlumno}</span>
           {alumno.carrera && <span>{alumno.carrera}</span>}
-          <span style={{ color: C.textoTenue }}>Periodo {alumno.periodo}</span>
         </div>
       </div>
 
@@ -183,6 +226,31 @@ function FilaAlumno({ alumno, onAbrir }) {
         <IconoFlechaDerecha tamano={20} />
       </span>
     </button>
+  );
+}
+
+/* Un curso (NRC) del docente con sus alumnos con discapacidad. */
+function GrupoCurso({ curso, onAbrir }) {
+  const n = curso.alumnos.length;
+  return (
+    <section style={e.grupo} aria-label={`${curso.codigo} NRC ${curso.nrc}`}>
+      <div style={e.grupoCabecera}>
+        <div style={{ minWidth: 0 }}>
+          <div style={e.grupoCodigo}>
+            {curso.codigo && <span>{curso.codigo}</span>}
+            <span>NRC {curso.nrc}</span>
+          </div>
+          <h3 style={e.grupoTitulo}>{curso.titulo || 'Curso sin título registrado'}</h3>
+          <p style={e.grupoMeta}>Periodo {curso.periodo}</p>
+        </div>
+        <span style={e.grupoCuenta}>{n} {n === 1 ? 'estudiante' : 'estudiantes'}</span>
+      </div>
+      <div style={e.lista}>
+        {curso.alumnos.map((a) => (
+          <FilaAlumno key={a.idAlumno} alumno={a} curso={curso} onAbrir={onAbrir} />
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -198,27 +266,31 @@ function FilaCargando() {
   );
 }
 
-function exportarExcel(alumnos, term) {
+/* Una fila por alumno y curso, en el mismo orden que la pantalla: periodo
+   (más reciente primero) → curso → apellidos. */
+function exportarExcel(periodos) {
   const filas = [[
-    'Código', 'Apellidos', 'Nombres', 'Carrera', 'Tipo de discapacidad',
-    'Discapacidad principal', 'Curso(s)', 'NRC', 'Periodo',
+    'Periodo', 'Curso', 'NRC', 'Nombre del curso', 'Código', 'Apellidos', 'Nombres',
+    'Carrera', 'Tipo de discapacidad', 'Discapacidad principal',
   ]];
-  alumnos.forEach((a) => {
+  periodos.forEach((p) => p.cursos.forEach((c) => c.alumnos.forEach((a) => {
     const principal = a.discapacidades.find((d) => d.principal) || a.discapacidades[0];
     filas.push([
+      c.periodo,
+      c.codigo,
+      c.nrc,
+      c.titulo || '',
       a.idAlumno,
       a.apellidos,
       a.nombres,
       a.carrera || '',
       a.discapacidades.map((d) => d.descripcion).join(' / '),
       principal ? principal.descripcion : '',
-      a.secciones.map((x) => x.curso).filter(Boolean).join(' / '),
-      a.secciones.map((x) => x.nrc).join(' / '),
-      a.periodo || term,
     ]);
-  });
+  })));
   const fecha = new Date().toISOString().slice(0, 10);
-  descargarBlob(crearXlsx(filas, 'Alumnos'), `alumnos-discapacidad-${term}-${fecha}.xlsx`);
+  const etiqueta = periodos.map((p) => p.periodo).join('-');
+  descargarBlob(crearXlsx(filas, 'Alumnos por curso'), `alumnos-discapacidad-${etiqueta}-${fecha}.xlsx`);
 }
 
 export default function Home({ term }) {
@@ -229,7 +301,7 @@ export default function Home({ term }) {
 
   const [estado, setEstado] = useState('cargando'); // cargando | listo | error
   const [error, setError] = useState(null);
-  const [alumnos, setAlumnos] = useState([]);
+  const [tablero, setTablero] = useState({ alumnos: [], periodos: [] });
   const solicitud = useRef(0);
 
   // getExtensionJwt puede cambiar de referencia en cada render: se lee por ref
@@ -252,11 +324,10 @@ export default function Home({ term }) {
       }
       if (solicitud.current !== id) return;
 
-      // 2. Alumnos con discapacidad matriculados en los NRC del docente (pidmdocente numérico).
-      const lista = await listarAlumnosDelDocente(authenticatedEthosFetch, { pidm, term });
+      // 2. Alumnos con discapacidad de los NRC del docente, agrupados por periodo y curso.
+      const datos = await cargarTablero(authenticatedEthosFetch, { pidm, term });
       if (solicitud.current !== id) return;
-      // La carrera y los datos de la ficha llegan en la misma lista.
-      setAlumnos(lista);
+      setTablero(datos);
       setEstado('listo');
     } catch (err) {
       if (solicitud.current !== id) return;
@@ -277,6 +348,9 @@ export default function Home({ term }) {
   const abrirFicha = (alumno) => {
     history.push(`/alumno/${encodeURIComponent(alumno.idAlumno)}`, { alumno });
   };
+
+  const { alumnos, periodos } = tablero;
+  const totalCursos = periodos.reduce((n, p) => n + p.cursos.length, 0);
 
   const volverAlInicio = () => {
     if (window.history.length > 1) {
@@ -315,14 +389,21 @@ export default function Home({ term }) {
       <Aviso
         icono={<IconoPersonas tamano={22} />}
         titulo="No tienes estudiantes con discapacidad en tus cursos"
-        texto={`En el periodo ${term} ninguno de los estudiantes matriculados en tus secciones tiene una discapacidad registrada. Si crees que falta alguien, comunícate con Bienestar Universitario.`}
+        texto="Ninguno de los estudiantes matriculados en tus secciones vigentes tiene una discapacidad registrada. Si crees que falta alguien, comunícate con Bienestar Universitario."
       />
     );
   } else {
     cuerpo = (
       <>
-        <div style={e.lista}>
-          {alumnos.map((a) => <FilaAlumno key={a.idAlumno} alumno={a} onAbrir={abrirFicha} />)}
+        <div style={e.periodos}>
+          {periodos.map((p) => (
+            <section key={p.periodo} aria-label={`Periodo ${p.periodo}`}>
+              {periodos.length > 1 && <h2 style={e.periodoTitulo}>Periodo {p.periodo}</h2>}
+              <div style={e.grupos}>
+                {p.cursos.map((c) => <GrupoCurso key={c.clave} curso={c} onAbrir={abrirFicha} />)}
+              </div>
+            </section>
+          ))}
         </div>
 
         <div className="bu-apilar" style={e.reporte}>
@@ -334,7 +415,7 @@ export default function Home({ term }) {
             type="button"
             className="bu-boton bu-boton-verde bu-ancho-completo"
             style={e.botonVerde}
-            onClick={() => exportarExcel(alumnos, term)}
+            onClick={() => exportarExcel(periodos)}
           >
             <IconoDescarga tamano={16} /> Descargar reporte Excel
           </button>
@@ -363,6 +444,11 @@ export default function Home({ term }) {
           <div style={e.contador} aria-live="polite">
             <span style={{ color: C.textoSuave }}>Total registrados</span>
             <strong style={e.contadorNumero}>{estado === 'listo' ? alumnos.length : '—'}</strong>
+            {estado === 'listo' && totalCursos > 0 && (
+              <span style={e.contadorDetalle}>
+                en {totalCursos} {totalCursos === 1 ? 'curso' : 'cursos'}
+              </span>
+            )}
           </div>
         </div>
 

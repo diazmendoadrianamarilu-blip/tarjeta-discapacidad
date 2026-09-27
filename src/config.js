@@ -71,9 +71,16 @@ export const PERIODO = '202646';
 export const API = {
   sesion: { recurso: 'x-docente-sesion', version: '1.0.0' },
   persona: { recurso: 'x-persona-pidm', version: '1.0.0' },
-  // 1.0.2: filtra solo por sesión y trae los datos de la ficha (SGBSTDN/STVMAJR).
-  // respaldo: si Ethos responde 406 (versión aún no registrada), se usa 1.0.1.
-  lista: { recurso: 'x-bienestar-lista-sesion', version: '1.0.2', respaldo: '1.0.1' },
+  // 1.0.3: filtra solo por sesión, varios periodos, datos de la ficha con
+  // descripciones (STVCAMP, SMRPRLE, STVLEVL, STVCOLL, STVDEPT), ciclo y tutor.
+  // respaldo: si Ethos responde 406 (versión aún no registrada), se usa 1.0.2.
+  lista: { recurso: 'x-bienestar-lista-sesion', version: '1.0.3', respaldo: '1.0.2' },
+  // Títulos de los cursos del docente (SSBSECT/SCBCRSE). Opcional: si no
+  // existe, los grupos muestran solo materia, número y NRC.
+  cursos: { recurso: 'x-bienestar-cursos-sesion', version: '1.0.0' },
+  // Datos personales (SPBPERS, SPRADDR, SPRTELE, GOREMAL) de la sección
+  // desplegable de la ficha. Se pide solo al abrir esa sección.
+  contacto: { recurso: 'x-bienestar-contacto-sesion', version: '1.0.0' },
   detalle: { recurso: 'x-discapacidad-detalle', version: '1.0.0' },
 };
 

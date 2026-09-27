@@ -230,7 +230,9 @@ export function armarTablero(filas, filasCursos, term) {
       nombreCompleto: ficha.nombreCompleto,
       carrera: ficha.carrera,
       discapacidades: ficha.discapacidades,
-      secciones: Array.from(secciones.values()).map(({ idsAlumnos, ...c }) => c),
+      secciones: Array.from(secciones.values()).map((c) => ({
+        clave: c.clave, periodo: c.periodo, nrc: c.nrc, codigo: c.codigo, seccion: c.seccion, titulo: c.titulo,
+      })),
       ficha,
     });
   });
