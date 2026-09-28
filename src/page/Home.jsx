@@ -2,178 +2,108 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { usePageControl, useData } from '@ellucian/experience-extension-utils';
 
-import { C, CHIPS, LISTA_FILTRADA_POR_SESION } from '../config';
+import { CHIPS, FUENTE, LISTA_FILTRADA_POR_SESION } from '../config';
 import { resolverDocente } from '../api/identidad';
 import { cargarTablero, iniciales } from '../api/discapacidad';
 import { crearXlsx, descargarBlob } from '../api/excel';
 import { useEthosFetch } from '../api/useEthosFetch';
-import {
-  Aviso, Encabezado, NotaLegal, Pagina, describirError, s,
-} from '../components/Estructura';
-import {
-  IconoAccesibilidad, IconoDescarga, IconoFlechaDerecha, IconoPersonas,
-} from '../components/Iconos';
 
-const e = {
-  cabecera: {
-    display: 'flex',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    gap: 20,
-    marginBottom: 32,
-  },
-  contador: {
-    background: C.blanco,
-    border: `1px solid ${C.borde}`,
-    borderRadius: 8,
-    padding: '12px 16px',
-    fontSize: 14,
-    boxShadow: '0 1px 2px 0 rgba(0,0,0,.05)',
-    whiteSpace: 'nowrap',
-    alignSelf: 'flex-end',
-  },
-  contadorNumero: { marginLeft: 12, fontSize: 18, fontWeight: 700, color: C.texto },
-  contadorDetalle: { display: 'block', marginTop: 2, fontSize: 12, color: C.textoTenue },
-  lista: { display: 'flex', flexDirection: 'column', gap: 12 },
-  periodos: { display: 'flex', flexDirection: 'column', gap: 32 },
-  periodoTitulo: {
-    margin: '0 0 12px',
-    fontSize: 13,
-    fontWeight: 700,
-    letterSpacing: '0.12em',
-    textTransform: 'uppercase',
-    color: C.textoSuave,
-  },
-  grupos: { display: 'flex', flexDirection: 'column', gap: 20 },
-  grupo: {
-    background: C.gris50,
-    border: `1px solid ${C.borde}`,
-    borderRadius: 14,
-    padding: 16,
-  },
-  grupoCabecera: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 12,
-    margin: '0 4px 12px',
-  },
-  grupoCodigo: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    columnGap: 10,
-    rowGap: 2,
-    fontSize: 13,
-    fontWeight: 600,
-    color: C.moradoTexto,
-  },
-  grupoTitulo: { margin: '2px 0 0', fontSize: 17, lineHeight: '24px', fontWeight: 600, color: C.texto },
-  grupoMeta: { margin: '2px 0 0', fontSize: 13, color: C.textoSuave },
-  grupoCuenta: {
-    flexShrink: 0,
-    fontSize: 12,
-    fontWeight: 600,
-    color: C.textoSecundario,
-    background: C.blanco,
-    border: `1px solid ${C.borde}`,
-    borderRadius: 999,
-    padding: '2px 10px',
-    whiteSpace: 'nowrap',
-  },
-  fila: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 16,
-    width: '100%',
-    padding: 16,
-    background: C.blanco,
-    border: `1px solid ${C.borde}`,
-    borderRadius: 12,
-    boxShadow: '0 1px 2px 0 rgba(0,0,0,.05)',
-    textAlign: 'left',
-    cursor: 'pointer',
-    color: 'inherit',
-    font: 'inherit',
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    background: C.gris100,
-    color: '#475569',
-    fontSize: 14,
-    fontWeight: 600,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  nombreLinea: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
-  nombre: { fontSize: 16, fontWeight: 600, color: C.texto },
-  chip: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    borderRadius: 999,
-    border: '1px solid',
-    padding: '1px 8px',
-    fontSize: 12,
-    fontWeight: 500,
-    lineHeight: '18px',
-    whiteSpace: 'nowrap',
-  },
-  meta: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    columnGap: 20,
-    rowGap: 4,
-    marginTop: 6,
-    fontSize: 14,
-    color: C.textoSuave,
-  },
-  iconoFila: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    background: C.gris50,
-    color: C.textoTenue,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-    transition: 'background .15s ease, color .15s ease',
-  },
-  reporte: {
-    marginTop: 32,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 16,
-    padding: 20,
-    background: C.verdeFondo,
-    border: `1px solid ${C.verdeBorde}`,
-    borderRadius: 12,
-  },
-  reporteTitulo: { margin: 0, fontSize: 16, fontWeight: 600, color: C.verdeTitulo },
-  reporteTexto: { margin: '4px 0 0', fontSize: 14, color: C.verdeTexto },
-  botonVerde: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 8,
-    height: 36,
-    padding: '0 16px',
-    border: 0,
-    borderRadius: 6,
-    background: C.verde,
-    color: C.blanco,
-    fontSize: 14,
-    fontWeight: 600,
-    cursor: 'pointer',
-    flexShrink: 0,
-    boxShadow: '0 1px 2px 0 rgba(0,0,0,.05)',
-  },
-  esqueleto: { background: '#E2E8F0', borderRadius: 6 },
+// Hemos eliminado Pagina y Encabezado de esta importación para quitar el título doble y la caja gris
+import { Aviso, NotaLegal, describirError } from '../components/Estructura';
+import { IconoDescarga, IconoFlechaDerecha, IconoPersonas } from '../components/Iconos';
+
+/* PALETA CROMÁTICA OFICIAL USS */
+const USS = {
+  morado: '#5C2193',
+  moradoClaro: '#763EAF',
+  verdeLima: '#5FED00',
+  verdeFondo: '#ECFFD9',
+  verdeBorde: '#C0FF88',
+  grisOscuro: '#333333',
+  grisBorde: '#E5E7EB',
+  blanco: '#FFFFFF'
 };
+
+const CSS = `
+  /* Expansión total del ancho y fondo blanco puro */
+  body, html {
+    background-color: ${USS.blanco} !important;
+  }
+
+  .bu-lienzo-extendido {
+    width: 100%;
+    min-height: 100vh;
+    background-color: ${USS.blanco};
+    padding: 32px 48px;
+    box-sizing: border-box;
+    font-family: ${FUENTE}, sans-serif;
+  }
+
+  .bu-fila { transition: background-color 0.2s ease; border-bottom: 1px solid ${USS.grisBorde}; }
+  .bu-fila:hover { background-color: #F9FAFB !important; }
+  .bu-fila:last-child { border-bottom: none; }
+
+  /* Diseño elegante y minimalista para la tarjeta de curso */
+  .bu-tarjeta-curso {
+    background: ${USS.blanco};
+    border: 1px solid ${USS.grisBorde};
+    border-left: 6px solid ${USS.morado};
+    border-radius: 12px;
+    margin-bottom: 32px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+    overflow: hidden;
+  }
+
+  .bu-btn-paginacion {
+    background: transparent;
+    border: 1px solid ${USS.grisBorde};
+    color: ${USS.morado};
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .bu-btn-paginacion:hover:not(:disabled) {
+    background: ${USS.verdeFondo};
+    border-color: ${USS.verdeBorde};
+  }
+  .bu-btn-paginacion:disabled {
+    color: #9CA3AF;
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  @media (max-width: 768px) {
+    .bu-lienzo-extendido { padding: 24px 16px !important; }
+    .bu-cabecera-flex { flex-direction: column !important; align-items: flex-start !important; gap: 20px !important; }
+    .bu-contador-movil { width: 100% !important; box-sizing: border-box; }
+    .bu-grupo-cabecera { flex-direction: column !important; align-items: flex-start !important; gap: 16px !important; }
+    .bu-grupo-cuenta { align-self: flex-start !important; }
+    .bu-alumno-fila { flex-direction: column; align-items: flex-start !important; padding: 20px 16px !important; gap: 12px; }
+    .bu-alumno-fila-der { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+    .bu-reporte-flex { flex-direction: column !important; align-items: flex-start !important; gap: 16px !important; padding: 20px 16px !important; }
+    .bu-btn-exportar { width: 100% !important; justify-content: center !important; }
+  }
+`;
+
+// Íconos Dinámicos en SVG basados en el tipo de discapacidad
+function IconoDinamico({ tipo }) {
+  const t = String(tipo || '').toLowerCase();
+  
+  if (t.includes('visual') || t.includes('ceguera') || t === 'vi') {
+    return <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>;
+  }
+  if (t.includes('auditiv') || t.includes('sordera') || t.includes('hipoacus') || t === 'au') {
+    return <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M6 8.5a6.5 6.5 0 1 1 13 0c0 6-6 6-6 10a3.5 3.5 0 1 1-7 0"/><path d="M11 10.5a2.5 2.5 0 1 1 5 0"/></svg>;
+  }
+  if (t.includes('cognitiv') || t.includes('intelectual') || t.includes('psic') || t === 'in' || t === 'co') {
+    return <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.9.5H7a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2h.5V11H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h.5V4.5A2.5 2.5 0 0 1 9.5 2z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.9.5h.1a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2h-.5v-3h.5a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-.1V4.5A2.5 2.5 0 0 0 14.5 2z"/></svg>;
+  }
+  // Motora / Default (Silla de Ruedas)
+  return <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="8" cy="16" r="5"/><path d="M19 19L16 12H11"/><path d="M11 12L13 6H16"/><circle cx="13" cy="3" r="1"/></svg>;
+}
 
 function estiloChip(discapacidad) {
   const codigo = String(discapacidad.codigo || '').toUpperCase();
@@ -181,8 +111,7 @@ function estiloChip(discapacidad) {
   if (['MO', 'FI'].includes(codigo) || /motor|f[ií]sic/.test(texto)) return CHIPS.motora;
   if (codigo === 'VI' || /visual|ceguera|baja visi/.test(texto)) return CHIPS.visual;
   if (codigo === 'AU' || /auditiv|sordera|hipoacus/.test(texto)) return CHIPS.auditiva;
-  if (['IN', 'CO', 'TE', 'PS'].includes(codigo)
-    || /cognitiv|intelectual|autis|espectro|mental|psico|aprendizaje/.test(texto)) return CHIPS.cognitiva;
+  if (['IN', 'CO', 'TE', 'PS'].includes(codigo) || /cognitiv|intelectual|autis|espectro|mental|psico|aprendizaje/.test(texto)) return CHIPS.cognitiva;
   return CHIPS.otra;
 }
 
@@ -194,7 +123,11 @@ function etiquetaChip(descripcion) {
 function Chip({ discapacidad }) {
   const c = estiloChip(discapacidad);
   return (
-    <span style={{ ...e.chip, background: c.fondo, color: c.texto, borderColor: c.borde }}>
+    <span style={{ 
+      display: 'inline-flex', alignItems: 'center', borderRadius: '999px', border: '1px solid', 
+      padding: '2px 10px', fontSize: '12px', fontWeight: 600, whiteSpace: 'nowrap',
+      background: c.fondo, color: c.texto, borderColor: c.borde 
+    }}>
       {etiquetaChip(discapacidad.descripcion)}
     </span>
   );
@@ -204,70 +137,104 @@ function FilaAlumno({ alumno, curso, onAbrir }) {
   const [principal, ...otras] = alumno.discapacidades;
 
   return (
-    <button type="button" className="bu-fila" style={e.fila} onClick={() => onAbrir(alumno, curso)}>
-      <div style={e.avatar} aria-hidden="true">{iniciales(alumno.nombres, alumno.apellidos)}</div>
+    <button type="button" className="bu-fila bu-alumno-fila" style={{
+      display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 24px',
+      width: '100%', borderTop: 'none', borderLeft: 'none', borderRight: 'none', 
+      background: 'transparent', textAlign: 'left', cursor: 'pointer', fontFamily: FUENTE
+    }} onClick={() => onAbrir(alumno, curso)}>
+      
+      <div style={{ width: 44, height: 44, borderRadius: '8px', background: USS.verdeFondo, border: `1px solid ${USS.verdeBorde}`, color: USS.morado, fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        {iniciales(alumno.nombres, alumno.apellidos)}
+      </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={e.nombreLinea}>
-          <span style={e.nombre}>{alumno.nombreCompleto}</span>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+          <span style={{ fontSize: '16px', fontWeight: 700, color: USS.grisOscuro }}>{alumno.nombreCompleto}</span>
           {principal && <Chip discapacidad={principal} />}
           {otras.map((d) => <Chip key={d.codigo} discapacidad={d} />)}
         </div>
-        <div style={e.meta}>
-          <span>{alumno.idAlumno}</span>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', fontSize: '13px', color: '#6B7280' }}>
+          <span style={{ fontWeight: 600, color: USS.morado }}>{alumno.idAlumno}</span>
           {alumno.carrera && <span>{alumno.carrera}</span>}
         </div>
       </div>
 
-      <div className="bu-fila-icono bu-solo-escritorio" style={e.iconoFila}>
-        <IconoAccesibilidad tamano={20} />
+      <div className="bu-alumno-fila-der" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div style={{ color: USS.moradoClaro, display: 'flex', padding: '0 8px' }} title="Tipo de discapacidad">
+          <IconoDinamico tipo={principal?.descripcion || principal?.codigo} />
+        </div>
+        <div style={{ color: '#9CA3AF', display: 'flex' }}>
+          <IconoFlechaDerecha tamano={20} />
+        </div>
       </div>
-      <span className="bu-fila-flecha" style={{ color: C.iconoTenue, display: 'flex' }}>
-        <IconoFlechaDerecha tamano={20} />
-      </span>
     </button>
   );
 }
 
-/* Un curso (NRC) del docente con sus alumnos con discapacidad. */
 function GrupoCurso({ curso, onAbrir }) {
+  const [pagina, setPagina] = useState(1);
+  const ALUMNOS_POR_PAGINA = 5;
   const n = curso.alumnos.length;
+  const totalPaginas = Math.ceil(n / ALUMNOS_POR_PAGINA);
+  
+  const inicio = (pagina - 1) * ALUMNOS_POR_PAGINA;
+  const alumnosPagina = curso.alumnos.slice(inicio, inicio + ALUMNOS_POR_PAGINA);
+
   return (
-    <section style={e.grupo} aria-label={`${curso.codigo} NRC ${curso.nrc}`}>
-      <div style={e.grupoCabecera}>
-        <div style={{ minWidth: 0 }}>
-          <div style={e.grupoCodigo}>
+    <section className="bu-tarjeta-curso" aria-label={`${curso.codigo} NRC ${curso.nrc}`}>
+      <div className="bu-grupo-cabecera" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: `1px solid ${USS.grisBorde}`, background: USS.blanco }}>
+        <div>
+          <div style={{ display: 'flex', gap: '8px', color: USS.moradoClaro, fontSize: '13px', fontWeight: 700, letterSpacing: '0.03em' }}>
             {curso.codigo && <span>{curso.codigo}</span>}
             <span>NRC {curso.nrc}</span>
           </div>
-          <h3 style={e.grupoTitulo}>{curso.titulo || 'Curso sin título registrado'}</h3>
-          <p style={e.grupoMeta}>Periodo {curso.periodo}</p>
+          <h3 style={{ margin: '4px 0 0', fontSize: '20px', fontWeight: 700, color: USS.morado, fontFamily: FUENTE }}>
+            {curso.titulo || 'Curso sin título registrado'}
+          </h3>
+          <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#6B7280' }}>Periodo {curso.periodo}</p>
         </div>
-        <span style={e.grupoCuenta}>{n} {n === 1 ? 'estudiante' : 'estudiantes'}</span>
+        <span className="bu-grupo-cuenta" style={{ background: USS.verdeFondo, border: `1px solid ${USS.verdeBorde}`, color: USS.morado, padding: '6px 16px', borderRadius: '999px', fontSize: '13px', fontWeight: 800, whiteSpace: 'nowrap' }}>
+          {n} {n === 1 ? 'estudiante' : 'estudiantes'}
+        </span>
       </div>
-      <div style={e.lista}>
-        {curso.alumnos.map((a) => (
+      
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {alumnosPagina.map((a) => (
           <FilaAlumno key={a.idAlumno} alumno={a} curso={curso} onAbrir={onAbrir} />
         ))}
       </div>
+
+      {totalPaginas > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', background: '#FAFAFA', borderTop: `1px solid ${USS.grisBorde}` }}>
+          <span style={{ fontSize: '13px', color: '#6B7280', fontWeight: 500 }}>
+            Mostrando {inicio + 1} - {Math.min(inicio + ALUMNOS_POR_PAGINA, n)} de {n}
+          </span>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button className="bu-btn-paginacion" onClick={() => setPagina(p => p - 1)} disabled={pagina === 1}>
+              Anterior
+            </button>
+            <button className="bu-btn-paginacion" onClick={() => setPagina(p => p + 1)} disabled={pagina === totalPaginas}>
+              Siguiente
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
 
 function FilaCargando() {
   return (
-    <div className="bu-pulso" style={{ ...e.fila, cursor: 'default' }} aria-hidden="true">
-      <div style={{ ...e.avatar, background: '#E2E8F0' }} />
+    <div className="bu-fila bu-alumno-fila" style={{ display: 'flex', gap: '16px', padding: '16px 24px', cursor: 'default' }} aria-hidden="true">
+      <div style={{ width: 44, height: 44, borderRadius: '8px', background: USS.grisBorde }} />
       <div style={{ flex: 1 }}>
-        <div style={{ ...e.esqueleto, width: '40%', height: 16 }} />
-        <div style={{ ...e.esqueleto, width: '25%', height: 12, marginTop: 10 }} />
+        <div style={{ background: USS.grisBorde, height: 16, width: '40%', borderRadius: 4, marginBottom: 8 }} />
+        <div style={{ background: USS.grisBorde, height: 12, width: '25%', borderRadius: 4 }} />
       </div>
     </div>
   );
 }
 
-/* Una fila por alumno y curso, en el mismo orden que la pantalla: periodo
-   (más reciente primero) → curso → apellidos. */
 function exportarExcel(periodos) {
   const filas = [[
     'Periodo', 'Curso', 'NRC', 'Nombre del curso', 'Código', 'Apellidos', 'Nombres',
@@ -276,15 +243,8 @@ function exportarExcel(periodos) {
   periodos.forEach((p) => p.cursos.forEach((c) => c.alumnos.forEach((a) => {
     const principal = a.discapacidades.find((d) => d.principal) || a.discapacidades[0];
     filas.push([
-      c.periodo,
-      c.codigo,
-      c.nrc,
-      c.titulo || '',
-      a.idAlumno,
-      a.apellidos,
-      a.nombres,
-      a.carrera || '',
-      a.discapacidades.map((d) => d.descripcion).join(' / '),
+      c.periodo, c.codigo, c.nrc, c.titulo || '', a.idAlumno, a.apellidos, a.nombres,
+      a.carrera || '', a.discapacidades.map((d) => d.descripcion).join(' / '),
       principal ? principal.descripcion : '',
     ]);
   })));
@@ -297,15 +257,12 @@ export default function Home({ term }) {
   const authenticatedEthosFetch = useEthosFetch();
   const { getExtensionJwt } = useData();
   const { setPageTitle } = usePageControl();
-  const history = useHistory();
-
-  const [estado, setEstado] = useState('cargando'); // cargando | listo | error
+  const history = useHistory(); 
+  const [estado, setEstado] = useState('cargando'); 
   const [error, setError] = useState(null);
   const [tablero, setTablero] = useState({ alumnos: [], periodos: [] });
   const solicitud = useRef(0);
 
-  // getExtensionJwt puede cambiar de referencia en cada render: se lee por ref
-  // para no volver a disparar la carga.
   const jwtRef = useRef(getExtensionJwt);
   jwtRef.current = getExtensionJwt;
 
@@ -316,7 +273,6 @@ export default function Home({ term }) {
     setError(null);
 
     try {
-      // 1. Identidad (secuencial): x-docente-sesion → respaldo JWT erpId + x-persona-pidm.
       let pidm = null;
       if (!LISTA_FILTRADA_POR_SESION) {
         const docente = await resolverDocente(authenticatedEthosFetch, jwtRef.current);
@@ -324,7 +280,6 @@ export default function Home({ term }) {
       }
       if (solicitud.current !== id) return;
 
-      // 2. Alumnos con discapacidad de los NRC del docente, agrupados por periodo y curso.
       const datos = await cargarTablero(authenticatedEthosFetch, { pidm, term });
       if (solicitud.current !== id) return;
       setTablero(datos);
@@ -349,9 +304,6 @@ export default function Home({ term }) {
     history.push(`/alumno/${encodeURIComponent(alumno.idAlumno)}`, { alumno });
   };
 
-  const { alumnos, periodos } = tablero;
-  const totalCursos = periodos.reduce((n, p) => n + p.cursos.length, 0);
-
   const volverAlInicio = () => {
     if (window.history.length > 1) {
       window.history.back();
@@ -361,10 +313,13 @@ export default function Home({ term }) {
     }
   };
 
+  const { alumnos, periodos } = tablero;
+  const totalCursos = periodos.reduce((n, p) => n + p.cursos.length, 0);
+
   let cuerpo;
   if (estado === 'cargando') {
     cuerpo = (
-      <div style={e.lista} aria-busy="true" aria-label="Cargando estudiantes">
+      <div className="bu-tarjeta-curso" aria-busy="true" aria-label="Cargando estudiantes" style={{ display: 'flex', flexDirection: 'column' }}>
         <FilaCargando /><FilaCargando /><FilaCargando />
       </div>
     );
@@ -373,12 +328,8 @@ export default function Home({ term }) {
     cuerpo = (
       <Aviso
         tono="error"
-        titulo={esIdentidad
-          ? 'No pudimos identificar tu usuario docente en Banner'
-          : 'No pudimos cargar la lista de estudiantes'}
-        texto={esIdentidad
-          ? 'Tu sesión no devolvió un registro docente. Si el problema continúa, comunícate con la Dirección de Tecnología y Transformación.'
-          : 'Ocurrió un problema al consultar la información. Intenta nuevamente en unos segundos.'}
+        titulo={esIdentidad ? 'No pudimos identificar tu usuario docente en Banner' : 'No pudimos cargar la lista de estudiantes'}
+        texto={esIdentidad ? 'Tu sesión no devolvió un registro docente. Si el problema continúa, comunícate con Tecnología.' : 'Ocurrió un problema al consultar la información. Intenta nuevamente.'}
         accion={cargar}
         textoAccion="Reintentar"
         detalle={esIdentidad ? error.intentos.join('\n') : describirError(error)}
@@ -389,35 +340,41 @@ export default function Home({ term }) {
       <Aviso
         icono={<IconoPersonas tamano={22} />}
         titulo="No tienes estudiantes con discapacidad en tus cursos"
-        texto="Ninguno de los estudiantes matriculados en tus secciones vigentes tiene una discapacidad registrada. Si crees que falta alguien, comunícate con Bienestar Universitario."
+        texto="Ninguno de los estudiantes matriculados en tus secciones vigentes tiene una discapacidad registrada."
       />
     );
   } else {
     cuerpo = (
       <>
-        <div style={e.periodos}>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
           {periodos.map((p) => (
-            <section key={p.periodo} aria-label={`Periodo ${p.periodo}`}>
-              {periodos.length > 1 && <h2 style={e.periodoTitulo}>Periodo {p.periodo}</h2>}
-              <div style={e.grupos}>
-                {p.cursos.map((c) => <GrupoCurso key={c.clave} curso={c} onAbrir={abrirFicha} />)}
-              </div>
-            </section>
+            <div key={p.periodo}>
+              {p.cursos.map((c) => <GrupoCurso key={c.clave} curso={c} onAbrir={abrirFicha} />)}
+            </div>
           ))}
         </div>
 
-        <div className="bu-apilar" style={e.reporte}>
+        <div className="bu-reporte-flex" style={{
+          marginTop: '16px', padding: '24px 32px', background: USS.verdeFondo,
+          border: `1px solid ${USS.verdeBorde}`, borderRadius: '12px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+        }}>
           <div>
-            <p style={e.reporteTitulo}>Reporte de estudiantes registrados</p>
-            <p style={e.reporteTexto}>Exporta la información para análisis y seguimiento institucional.</p>
+            <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: USS.morado, fontFamily: FUENTE }}>Reporte de estudiantes registrados</h4>
+            <p style={{ margin: '4px 0 0', fontSize: '14px', color: USS.grisOscuro, fontFamily: FUENTE }}>Exporta la información para análisis y seguimiento institucional.</p>
           </div>
           <button
             type="button"
-            className="bu-boton bu-boton-verde bu-ancho-completo"
-            style={e.botonVerde}
+            className="bu-btn-exportar"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '8px',
+              height: '42px', padding: '0 24px', border: 'none', borderRadius: '8px',
+              background: USS.morado, color: USS.blanco, fontSize: '14px', fontWeight: 600, cursor: 'pointer', flexShrink: 0,
+              fontFamily: FUENTE, boxShadow: '0 2px 4px rgba(0,0,0,.1)'
+            }}
             onClick={() => exportarExcel(periodos)}
           >
-            <IconoDescarga tamano={16} /> Descargar reporte Excel
+            <IconoDescarga tamano={18} /> Descargar reporte Excel
           </button>
         </div>
       </>
@@ -425,37 +382,56 @@ export default function Home({ term }) {
   }
 
   return (
-    <Pagina>
-      <Encabezado
-        subtitulo="Tablero de ajustes razonables"
-        textoVolver="Inicio"
-        alVolver={volverAlInicio}
-      />
+    <div className="bu-lienzo-extendido">
+      <style>{CSS}</style>
 
-      <main className="bu-contenedor" style={s.contenedor}>
-        <div className="bu-apilar" style={e.cabecera}>
-          <div>
-            <p style={s.antetitulo}>Panel institucional</p>
-            <h1 style={s.titulo}>Alumnos con Discapacidad Registrada</h1>
-            <p style={s.bajada}>
-              Consulta los estudiantes asignados a tus cursos y gestiona sus ajustes razonables.
-            </p>
-          </div>
-          <div style={e.contador} aria-live="polite">
-            <span style={{ color: C.textoSuave }}>Total registrados</span>
-            <strong style={e.contadorNumero}>{estado === 'listo' ? alumnos.length : '—'}</strong>
-            {estado === 'listo' && totalCursos > 0 && (
-              <span style={e.contadorDetalle}>
-                en {totalCursos} {totalCursos === 1 ? 'curso' : 'cursos'}
-              </span>
-            )}
-          </div>
+      {/* Botón de volver al inicio customizado para evitar errores de compilación */}
+      <button 
+        type="button" 
+        onClick={volverAlInicio} 
+        style={{ 
+          background: 'none', border: 'none', color: USS.moradoClaro, cursor: 'pointer', 
+          display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '14px', 
+          fontWeight: 600, padding: 0, marginBottom: '24px', fontFamily: FUENTE 
+        }}
+      >
+        <span style={{ transform: 'scaleX(-1)', display: 'flex' }}>
+          <IconoFlechaDerecha tamano={14} />
+        </span>
+        Inicio
+      </button>
+
+      <div className="bu-cabecera-flex" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '24px', borderBottom: `1px solid ${USS.grisBorde}`, marginBottom: '32px' }}>
+        <div>
+          <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: USS.moradoClaro, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Panel Institucional
+          </p>
+          <h1 style={{ margin: '8px 0 0', fontSize: '28px', fontWeight: 800, color: USS.morado }}>
+            Directorio de Estudiantes
+          </h1>
+          <p style={{ margin: '8px 0 0', fontSize: '15px', color: '#4B5563' }}>
+            Consulta los estudiantes asignados a tus cursos y gestiona sus ajustes razonables.
+          </p>
         </div>
+        
+        <div className="bu-contador-movil" style={{ background: USS.verdeFondo, border: `1px solid ${USS.verdeBorde}`, borderRadius: '12px', padding: '16px 24px', textAlign: 'center', flexShrink: 0 }} aria-live="polite">
+          <span style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: USS.morado }}>TOTAL ASIGNADOS</span>
+          <strong style={{ display: 'block', fontSize: '36px', fontWeight: 800, color: USS.morado, lineHeight: 1, margin: '8px 0' }}>
+            {estado === 'listo' ? alumnos.length : '—'}
+          </strong>
+          {estado === 'listo' && totalCursos > 0 && (
+            <span style={{ display: 'block', fontSize: '12px', color: USS.moradoClaro, fontWeight: 600 }}>
+              en {totalCursos} {totalCursos === 1 ? 'curso' : 'cursos'}
+            </span>
+          )}
+        </div>
+      </div>
 
-        {cuerpo}
+      {cuerpo}
 
+      <div style={{ marginTop: '40px' }}>
         <NotaLegal />
-      </main>
-    </Pagina>
+      </div>
+    </div>
   );
 }
