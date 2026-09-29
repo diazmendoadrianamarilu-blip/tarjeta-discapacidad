@@ -2,141 +2,121 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import { usePageControl } from '@ellucian/experience-extension-utils';
 
-import { C, MOSTRAR_DIAGNOSTICO } from '../config';
+import { MOSTRAR_DIAGNOSTICO } from '../config';
 import { formatearFecha, obtenerDatosPersonales, obtenerDetalleAlumno } from '../api/discapacidad';
 import { useEthosFetch } from '../api/useEthosFetch';
+import { Aviso, NotaLegal, describirError } from '../components/Estructura';
 import {
-  Aviso, Encabezado, NotaLegal, Pagina, describirError, s,
-} from '../components/Estructura';
+  Badge, ChipDiscapacidad, EnlaceVolver, IconoDiscapacidad, IconoPanel, Lienzo, USS, tipografia,
+} from '../components/Tema';
 import {
-  IconoCalendario, IconoCorreo, IconoEscudo, IconoFlechaDerecha, IconoPersona, IconoPersonas,
-  IconoTelefono, IconoUbicacion,
+  IconoBirrete, IconoCalendario, IconoCorreo, IconoFlechaDerecha, IconoLibro, IconoPersona, IconoTelefono,
+  IconoUbicacion,
 } from '../components/Iconos';
 
 const e = {
-  cabecera: { display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 32 },
-  iconoCabecera: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    background: C.azul50,
-    color: C.morado,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
+  cabecera: {
+    display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, marginBottom: 24,
   },
-  tarjeta: {
-    background: C.blanco,
-    border: `1px solid ${C.borde}`,
-    borderRadius: 12,
-    boxShadow: '0 1px 2px 0 rgba(0,0,0,.05)',
-    padding: '24px 0',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 24,
+  estadoActivo: {
+    display: 'inline-flex', alignItems: 'center', gap: 8, border: `1px solid ${USS.verdeBorde}`,
+    background: USS.verdeFondo, color: USS.texto, borderRadius: 999, padding: '4px 12px',
+    fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', alignSelf: 'flex-start',
   },
-  tarjetaCabecera: { padding: '0 24px', display: 'flex', flexDirection: 'column', gap: 6 },
-  nombre: { margin: 0, fontSize: 20, lineHeight: '28px', fontWeight: 600, color: C.texto },
-  sub: { margin: 0, fontSize: 14, color: C.textoSuave },
-  estado: {
-    marginTop: 8,
-    alignSelf: 'flex-start',
-    display: 'inline-flex',
-    alignItems: 'center',
-    borderRadius: 999,
-    border: '1px solid',
-    padding: '1px 8px',
-    fontSize: 12,
-    fontWeight: 500,
-    lineHeight: '18px',
+  estadoVencido: {
+    display: 'inline-flex', alignItems: 'center', gap: 8, border: '1px solid #FDE68A', background: '#FFFBEB',
+    color: '#92400E', borderRadius: 999, padding: '4px 12px', fontSize: 13, fontWeight: 600,
+    whiteSpace: 'nowrap', alignSelf: 'flex-start',
   },
-  contenido: { padding: '0 24px', display: 'flex', flexDirection: 'column', gap: 24 },
-  separador: { height: 1, background: C.separador, border: 0, margin: 0 },
-  dosColumnas: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 20 },
-  tresColumnas: { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 16 },
-  dato: { display: 'flex', alignItems: 'flex-start', gap: 12 },
-  datoIcono: {
-    marginTop: 2,
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    background: C.gris100,
-    color: C.textoSuave,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
+  punto: { width: 8, height: 8, borderRadius: 999, flexShrink: 0 },
+  columna: { display: 'flex', flexDirection: 'column', gap: 20, minWidth: 0 },
+  panel: { padding: 20 },
+  panelCabecera: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16 },
+  etiqueta: { margin: 0, fontSize: 12, fontWeight: 500, color: USS.textoSuave },
+  valor: { margin: '2px 0 0', fontSize: 14, fontWeight: 500, color: USS.texto, overflowWrap: 'anywhere' },
+  codigo: { margin: '1px 0 0', fontSize: 12, color: USS.textoTenue },
+  sinDato: { margin: '2px 0 0', fontSize: 14, color: USS.textoTenue },
+  destacado: { background: USS.verdeFondo, borderColor: USS.verdeBorde, boxShadow: 'none' },
+  ajuste: { padding: '12px 0', borderTop: `1px solid ${USS.verdeBorde}` },
+  ajusteNombre: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
+  ajusteVigencia: { margin: '6px 0 0', fontSize: 13, color: USS.textoSuave },
+  curso: {
+    display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', columnGap: 12, rowGap: 2, padding: '12px 0',
+    borderTop: `1px solid ${USS.borde}`,
   },
-  etiqueta: { margin: 0, fontSize: 12, fontWeight: 500, color: C.textoSuave },
-  valor: {
-    margin: '4px 0 0', fontSize: 14, fontWeight: 500, color: C.textoCuerpo, overflowWrap: 'anywhere', whiteSpace: 'pre-line',
+  cursoCodigo: { fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', color: USS.textoSuave },
+  cursoTitulo: { fontSize: 14, fontWeight: 600, color: USS.texto },
+  cursoPeriodo: { fontSize: 13, color: USS.textoSuave },
+  acordeon: {
+    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+    padding: '16px 20px', border: 0, borderRadius: 12, background: USS.superficie, color: USS.textoSuave,
+    fontSize: 14, fontWeight: 700, cursor: 'pointer', textAlign: 'left',
   },
-  sinDato: { fontWeight: 400, color: C.textoTenue },
-  caja: { background: C.gris50, borderRadius: 8, padding: 12 },
-  ajustes: {
-    background: C.azulFondo,
-    border: `1px solid ${C.azulBorde}`,
-    borderRadius: 12,
-    padding: 16,
+  acordeonCuerpo: { padding: 20, borderTop: `1px solid ${USS.borde}` },
+  nota: { margin: 0, fontSize: 14, color: USS.textoSuave },
+  botonSec: {
+    marginTop: 12, height: 34, padding: '0 14px', border: `1px solid ${USS.borde}`, borderRadius: 8,
+    background: USS.superficie, color: USS.morado, fontSize: 13, fontWeight: 600, cursor: 'pointer',
   },
-  ajustesTitulo: {
-    margin: 0,
-    fontSize: 12,
-    fontWeight: 700,
-    letterSpacing: '0.12em',
-    textTransform: 'uppercase',
-    color: C.moradoTexto,
+  diag: {
+    marginTop: 12, padding: '10px 12px', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8,
+    fontSize: 12, color: '#78350F', whiteSpace: 'pre-wrap', fontFamily: 'ui-monospace, Consolas, monospace',
   },
-  ajustesTexto: { margin: '8px 0 0', fontSize: 14, lineHeight: '24px', color: C.textoSecundario },
-  ajustesVigencia: { margin: '4px 0 0', fontSize: 12, color: C.textoSuave },
-  esqueleto: { background: '#E2E8F0', borderRadius: 6 },
-  codigo: { margin: '2px 0 0', fontSize: 12, color: C.textoTenue, overflowWrap: 'anywhere' },
-  adicional: { border: `1px solid ${C.borde}`, borderRadius: 12, overflow: 'hidden' },
-  adicionalBoton: {
-    width: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-    padding: '14px 16px',
-    border: 0,
-    background: C.blanco,
-    color: C.texto,
-    fontSize: 14,
-    fontWeight: 600,
-    cursor: 'pointer',
-    textAlign: 'left',
-  },
-  adicionalCuerpo: { padding: 16, borderTop: `1px solid ${C.borde}` },
-  adicionalNota: { margin: 0, fontSize: 14, color: C.textoSuave },
-  adicionalReintentar: {
-    marginTop: 8,
-    padding: '6px 12px',
-    border: `1px solid ${C.borde}`,
-    borderRadius: 6,
-    background: C.blanco,
-    color: C.textoSecundario,
-    fontSize: 13,
-    cursor: 'pointer',
-  },
+  esqueleto: { background: USS.borde, borderRadius: 6 },
 };
 
-/* valor: texto, o { codigo, descripcion } de una tabla de validación de Banner
-   (se muestra la descripción y, debajo, el código). */
-function Valor({ valor }) {
+/* valor: texto, o { codigo, descripcion } de una tabla de validación de Banner. */
+function Campo({ etiqueta, valor, icono }) {
+  let contenido;
   if (valor && typeof valor === 'object') {
-    const principal = valor.descripcion || valor.codigo;
-    return (
+    contenido = (
       <>
-        <p style={e.valor}>{principal}</p>
-        {valor.descripcion && valor.codigo && <p style={e.codigo}>Código {valor.codigo}</p>}
+        <dd style={{ ...e.valor, marginLeft: 0 }}>{valor.descripcion || valor.codigo}</dd>
+        {valor.descripcion && valor.codigo && <dd style={{ ...e.codigo, marginLeft: 0 }}>{valor.codigo}</dd>}
       </>
     );
+  } else if (valor) {
+    contenido = <dd style={{ ...e.valor, marginLeft: 0 }}>{valor}</dd>;
+  } else {
+    contenido = <dd style={{ ...e.sinDato, marginLeft: 0 }}>No registrado</dd>;
   }
-  return valor
-    ? <p style={e.valor}>{valor}</p>
-    : <p style={{ ...e.valor, ...e.sinDato }}>No registrado</p>;
+  const campo = (
+    <div style={{ minWidth: 0 }}>
+      <dt style={e.etiqueta}>{etiqueta}</dt>
+      {contenido}
+    </div>
+  );
+  if (!icono) return campo;
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, minWidth: 0 }}>
+      <span style={{ display: 'flex', marginTop: 2, color: USS.textoTenue }} aria-hidden="true">{icono}</span>
+      {campo}
+    </div>
+  );
+}
+
+function Panel({ titulo, icono, extra, destacado, children }) {
+  return (
+    <section className="bu-tarjeta" style={{ ...e.panel, ...(destacado ? e.destacado : null) }} aria-label={titulo}>
+      <div style={e.panelCabecera}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+          {icono}
+          <h2 style={tipografia.panelTitulo}>{titulo}</h2>
+        </div>
+        {extra}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function vigencia(d) {
+  const desde = formatearFecha(d.vigenteDesde);
+  const hasta = formatearFecha(d.vigenteHasta);
+  if (desde && hasta) return `Vigente del ${desde} al ${hasta}`;
+  if (desde) return `Vigente desde el ${desde}`;
+  if (hasta) return `Vigente hasta el ${hasta}`;
+  return 'Sin fechas de vigencia registradas';
 }
 
 function textoTutor(tutor) {
@@ -144,7 +124,7 @@ function textoTutor(tutor) {
   return [tutor.nombre, tutor.id].filter(Boolean).join(' · ');
 }
 
-/* Sección desplegable "Datos adicionales": se consulta solo al abrirla. */
+/* "Datos adicionales": se consulta solo al abrirla. */
 function DatosAdicionales({ idAlumno }) {
   const authenticatedEthosFetch = useEthosFetch();
   const [abierto, setAbierto] = useState(false);
@@ -173,126 +153,85 @@ function DatosAdicionales({ idAlumno }) {
 
   let contenido = null;
   if (estado === 'cargando') {
-    contenido = <p style={e.adicionalNota}>Cargando datos adicionales…</p>;
+    contenido = <p style={e.nota}>Cargando datos adicionales…</p>;
   } else if (estado === 'error') {
     contenido = (
       <div>
-        <p style={e.adicionalNota}>No pudimos cargar los datos adicionales.</p>
-        <button type="button" className="bu-volver" style={e.adicionalReintentar} onClick={cargar}>
-          Reintentar
-        </button>
-        {MOSTRAR_DIAGNOSTICO && <p style={e.codigo}>{describirError(error)}</p>}
+        <p style={e.nota}>No pudimos cargar los datos adicionales.</p>
+        <button type="button" className="bu-btn-sec" style={e.botonSec} onClick={cargar}>Reintentar</button>
+        {MOSTRAR_DIAGNOSTICO && <div style={e.diag}>{describirError(error)}</div>}
       </div>
     );
   } else if (estado === 'listo' && !datos) {
-    contenido = <p style={e.adicionalNota}>No hay datos adicionales registrados para este estudiante.</p>;
+    contenido = <p style={e.nota}>No hay datos adicionales registrados para este estudiante.</p>;
   } else if (estado === 'listo') {
-    const direccion = datos.direcciones[0];
+    const dir = datos.direcciones[0] || {};
     contenido = (
-      <div className="bu-dos-columnas" style={e.dosColumnas}>
-        <Dato
-          icono={<IconoCalendario tamano={16} />}
-          etiqueta="Fecha de nacimiento"
-          valor={formatearFecha(datos.fechaNacimiento)}
-        />
-        <Dato
-          icono={<IconoUbicacion tamano={16} />}
-          etiqueta={direccion && direccion.tipo ? `Dirección (${direccion.tipo})` : 'Dirección'}
-          valor={direccion ? direccion.linea : null}
-        />
-        <Dato icono={<IconoUbicacion tamano={16} />} etiqueta="Ciudad / distrito" valor={direccion && direccion.distrito} />
-        <Dato icono={<IconoUbicacion tamano={16} />} etiqueta="Provincia" valor={direccion && direccion.provincia} />
-        <Dato icono={<IconoUbicacion tamano={16} />} etiqueta="Departamento (región)" valor={direccion && direccion.region} />
-        <Dato icono={<IconoUbicacion tamano={16} />} etiqueta="País" valor={direccion && direccion.pais} />
-        <Dato
+      <dl className="bu-datos">
+        <Campo icono={<IconoCalendario tamano={16} />} etiqueta="Fecha de nacimiento" valor={formatearFecha(datos.fechaNacimiento)} />
+        <Campo icono={<IconoUbicacion tamano={16} />} etiqueta={dir.tipo ? `Dirección (${dir.tipo})` : 'Dirección'} valor={dir.linea} />
+        <Campo icono={<IconoUbicacion tamano={16} />} etiqueta="Ciudad / distrito" valor={dir.distrito} />
+        <Campo icono={<IconoUbicacion tamano={16} />} etiqueta="Provincia" valor={dir.provincia} />
+        <Campo icono={<IconoUbicacion tamano={16} />} etiqueta="Departamento (región)" valor={dir.region} />
+        <Campo icono={<IconoUbicacion tamano={16} />} etiqueta="País" valor={dir.pais} />
+        <Campo
           icono={<IconoTelefono tamano={16} />}
           etiqueta="Teléfono"
-          valor={datos.telefonos.map((t) => (t.tipo ? `${t.numero} (${t.tipo})` : t.numero)).join(' · ') || null}
+          valor={datos.telefonos.map((t) => (t.tipo ? `${t.numero} (${t.tipo})` : t.numero)).join('\n') || null}
         />
-        <Dato
-          icono={<IconoCorreo tamano={16} />}
-          etiqueta="Correo"
-          valor={datos.correos.map((c) => c.correo).join(' · ') || null}
-        />
-      </div>
+        <Campo icono={<IconoCorreo tamano={16} />} etiqueta="Correo" valor={datos.correos.map((c) => c.correo).join('\n') || null} />
+      </dl>
     );
   }
 
   return (
-    <div style={e.adicional}>
+    <section className="bu-tarjeta" aria-label="Datos adicionales">
       <button
         type="button"
-        className="bu-volver"
-        style={e.adicionalBoton}
+        className="bu-acordeon"
+        style={{ ...e.acordeon, borderRadius: abierto ? '12px 12px 0 0' : 12 }}
         aria-expanded={abierto}
         aria-controls="bu-datos-adicionales"
         onClick={alternar}
       >
-        <span>Datos adicionales</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+          <IconoPanel Icono={IconoPersona} />
+          <span style={tipografia.panelTitulo}>Datos adicionales</span>
+        </span>
         <span style={{ display: 'flex', transition: 'transform .15s ease', transform: `rotate(${abierto ? 90 : 0}deg)` }}>
           <IconoFlechaDerecha tamano={18} />
         </span>
       </button>
-      {abierto && <div id="bu-datos-adicionales" style={e.adicionalCuerpo}>{contenido}</div>}
-    </div>
-  );
-}
-
-function Dato({ icono, etiqueta, valor }) {
-  return (
-    <div style={e.dato}>
-      <div style={e.datoIcono}>{icono}</div>
-      <div style={{ minWidth: 0 }}>
-        <p style={e.etiqueta}>{etiqueta}</p>
-        <Valor valor={valor} />
-      </div>
-    </div>
-  );
-}
-
-function Caja({ etiqueta, valor }) {
-  return (
-    <div style={e.caja}>
-      <p style={{ ...e.etiqueta, fontWeight: 400 }}>{etiqueta}</p>
-      <Valor valor={valor} />
-    </div>
+      {abierto && <div id="bu-datos-adicionales" style={e.acordeonCuerpo}>{contenido}</div>}
+    </section>
   );
 }
 
 function FichaCargando({ resumen }) {
+  const linea = (ancho, alto, extra) => (
+    <div className="bu-pulso" style={{ ...e.esqueleto, width: ancho, height: alto, ...extra }} />
+  );
   return (
-    <div style={e.tarjeta} aria-busy="true">
-      <div style={e.tarjetaCabecera}>
-        {resumen
-          ? <h2 style={e.nombre}>{resumen.nombreCompleto}</h2>
-          : <div className="bu-pulso" style={{ ...e.esqueleto, width: 260, height: 22 }} />}
-        <div className="bu-pulso" style={{ ...e.esqueleto, width: 220, height: 14, marginTop: 4 }} />
-      </div>
-      <div style={e.contenido}>
-        <hr style={e.separador} />
-        <div className="bu-pulso bu-dos-columnas" style={e.dosColumnas}>
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} style={e.dato}>
-              <div style={{ ...e.datoIcono, background: '#E2E8F0' }} />
-              <div style={{ flex: 1 }}>
-                <div style={{ ...e.esqueleto, width: '45%', height: 10 }} />
-                <div style={{ ...e.esqueleto, width: '70%', height: 14, marginTop: 8 }} />
-              </div>
-            </div>
-          ))}
+    <div aria-busy="true" aria-label="Cargando ficha">
+      <div style={e.cabecera}>
+        <div style={{ flex: 1 }}>
+          {linea(120, 12)}
+          {resumen
+            ? <h1 style={tipografia.titulo}>{resumen.nombreCompleto}</h1>
+            : linea('50%', 28, { marginTop: 10 })}
+          {linea('35%', 14, { marginTop: 10 })}
         </div>
+      </div>
+      <div className="bu-ficha-grid">
+        {[0, 1].map((i) => (
+          <div key={i} className="bu-tarjeta" style={e.panel}>
+            {linea(140, 12)}
+            {[0, 1, 2].map((j) => <div key={j}>{linea('60%', 14, { marginTop: 18 })}</div>)}
+          </div>
+        ))}
       </div>
     </div>
   );
-}
-
-function vigencia(d) {
-  const desde = formatearFecha(d.vigenteDesde);
-  const hasta = formatearFecha(d.vigenteHasta);
-  if (desde && hasta) return `Vigencia: del ${desde} al ${hasta}`;
-  if (desde) return `Vigente desde el ${desde}`;
-  if (hasta) return `Vigente hasta el ${hasta}`;
-  return null;
 }
 
 export default function DetalleAlumno({ idAlumno, term }) {
@@ -351,97 +290,108 @@ export default function DetalleAlumno({ idAlumno, term }) {
     cuerpo = (
       <Aviso
         titulo="No encontramos el registro del estudiante"
-        texto={`El código ${idAlumno} no tiene una discapacidad registrada en SGADISA para el periodo ${term}.`}
+        texto={`El código ${idAlumno} no figura entre los estudiantes con discapacidad de tus cursos vigentes.`}
       />
     );
   } else {
     const carrera = ficha.carrera || (resumen && resumen.carrera) || null;
-    const tipos = ficha.discapacidades.map((d) => d.descripcion).join(', ');
     const secciones = ficha.secciones || (resumen && resumen.secciones) || [];
-    const cursos = secciones
-      .map((c) => [c.codigo, `NRC ${c.nrc}`, c.titulo].filter(Boolean).join(' · '))
-      .join('\n');
-    // Si no hay registros vigentes se muestran todos, marcados como vencidos en el estado.
+    // Si no hay registros vigentes se muestran todos, con el estado "vencido".
     const ajustes = ficha.ajustesActivos.length > 0 ? ficha.ajustesActivos : ficha.discapacidades;
-    const colorEstado = ficha.vigente
-      ? { background: C.activoFondo, borderColor: C.activoBorde, color: C.activoTexto }
-      : { background: '#FFFBEB', borderColor: '#FDE68A', color: '#B45309' };
 
     cuerpo = (
-      <section style={e.tarjeta} aria-label={`Ficha de ${ficha.nombreCompleto}`}>
-        <div style={e.tarjetaCabecera}>
-          <h2 style={e.nombre}>{ficha.nombreCompleto}</h2>
-          <p style={e.sub}>
-            {carrera || 'Carrera no registrada'} · Periodo {ficha.periodo}
-          </p>
-          <span style={{ ...e.estado, ...colorEstado }}>
-            {ficha.vigente ? 'Registro activo' : 'Registro vencido'}
-          </span>
+      <>
+        <div className="bu-cabecera" style={e.cabecera}>
+          <div style={{ minWidth: 0 }}>
+            <p style={tipografia.antetitulo}>Ficha del estudiante</p>
+            <h1 style={tipografia.titulo}>{ficha.nombreCompleto}</h1>
+            <p style={tipografia.bajada}>
+              {[ficha.idAlumno, carrera, `Periodo ${ficha.periodo}`].filter(Boolean).join(' · ')}
+            </p>
+          </div>
+          {ficha.vigente ? (
+            <span style={e.estadoActivo}>
+              <span style={{ ...e.punto, background: USS.verdeLima }} aria-hidden="true" />
+              Registro activo
+            </span>
+          ) : (
+            <span style={e.estadoVencido}>
+              <span style={{ ...e.punto, background: '#F59E0B' }} aria-hidden="true" />
+              Registro vencido
+            </span>
+          )}
         </div>
 
-        <div style={e.contenido}>
-          <hr style={e.separador} />
-          <div className="bu-dos-columnas" style={e.dosColumnas}>
-            <Dato icono={<IconoPersona tamano={16} />} etiqueta="Código (ID Banner)" valor={ficha.idAlumno} />
-            <Dato icono={<IconoUbicacion tamano={16} />} etiqueta="Campus" valor={ficha.campus} />
-            <Dato icono={<IconoEscudo tamano={16} />} etiqueta="Programa" valor={ficha.programa} />
-            <Dato icono={<IconoPersonas tamano={16} />} etiqueta="Nivel" valor={ficha.nivel} />
-            <Dato icono={<IconoEscudo tamano={16} />} etiqueta="Escuela" valor={ficha.escuela} />
-            <Dato icono={<IconoEscudo tamano={16} />} etiqueta="Departamento" valor={ficha.departamento} />
-            {ficha.ciclo && <Dato icono={<IconoCalendario tamano={16} />} etiqueta="Ciclo" valor={ficha.ciclo} />}
-            {ficha.tutor && <Dato icono={<IconoPersona tamano={16} />} etiqueta="Tutor" valor={textoTutor(ficha.tutor)} />}
+        <div className="bu-ficha-grid">
+          <div style={e.columna}>
+            <Panel titulo="Datos académicos" icono={<IconoPanel Icono={IconoBirrete} tono="azul" />}>
+              <dl className="bu-datos">
+                <Campo etiqueta="Código (ID Banner)" valor={ficha.idAlumno} />
+                <Campo etiqueta="Carrera" valor={carrera} />
+                <Campo etiqueta="Programa" valor={ficha.programa} />
+                <Campo etiqueta="Campus" valor={ficha.campus} />
+                <Campo etiqueta="Facultad" valor={ficha.escuela} />
+                <Campo etiqueta="Escuela profesional" valor={ficha.departamento} />
+                <Campo etiqueta="Nivel" valor={ficha.nivel} />
+                {ficha.ciclo && <Campo etiqueta="Ciclo" valor={ficha.ciclo} />}
+                {ficha.tutor && <Campo etiqueta="Tutor" valor={textoTutor(ficha.tutor)} />}
+              </dl>
+            </Panel>
+
+            <Panel
+              titulo="Cursos contigo"
+              icono={<IconoPanel Icono={IconoLibro} />}
+              extra={<Badge>{secciones.length} {secciones.length === 1 ? 'curso' : 'cursos'}</Badge>}
+            >
+              {secciones.length === 0 ? (
+                <p style={e.nota}>Sin cursos registrados.</p>
+              ) : (
+                <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                  {secciones.map((c, i) => (
+                    <li key={c.clave || c.nrc} style={{ ...e.curso, ...(i === 0 ? { borderTop: 0, paddingTop: 0 } : null) }}>
+                      <span style={e.cursoCodigo}>{[c.codigo, `NRC ${c.nrc}`].filter(Boolean).join(' · ')}</span>
+                      <span style={e.cursoTitulo}>{c.titulo || 'Curso sin título registrado'}</span>
+                      {c.periodo && <span style={e.cursoPeriodo}>Periodo {c.periodo}</span>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Panel>
           </div>
 
-          <hr style={e.separador} />
-          <div className="bu-tres-columnas" style={e.tresColumnas}>
-            <Caja etiqueta="Carrera" valor={carrera} />
-            <Caja etiqueta="Tipo de discapacidad" valor={tipos} />
-            <Caja etiqueta="Curso(s) contigo" valor={cursos || null} />
+          <div style={e.columna}>
+            <Panel
+              titulo="Discapacidad y ajustes razonables"
+              icono={<IconoDiscapacidad discapacidad={ajustes[0]} tamano={30} />}
+              destacado
+            >
+              {ajustes.length === 0 ? (
+                <p style={e.nota}>No hay ajustes razonables registrados en SGADISA para este estudiante.</p>
+              ) : ajustes.map((d, i) => (
+                <div key={d.codigo} style={{ ...e.ajuste, ...(i === 0 ? { borderTop: 0, paddingTop: 0 } : null) }}>
+                  <div style={e.ajusteNombre}>
+                    <ChipDiscapacidad discapacidad={d} />
+                    {d.principal && ajustes.length > 1 && <Badge tono="neutro">Principal</Badge>}
+                  </div>
+                  <p style={e.ajusteVigencia}>{vigencia(d)}</p>
+                </div>
+              ))}
+            </Panel>
           </div>
+        </div>
 
-          <div style={e.ajustes}>
-            <p style={e.ajustesTitulo}>Ajustes razonables activos</p>
-            {ajustes.length > 0 ? ajustes.map((d) => (
-              <div key={d.codigo}>
-                <p style={e.ajustesTexto}>
-                  {d.descripcion}
-                  {d.principal ? ' (principal)' : ''}
-                </p>
-                <p style={e.ajustesVigencia}>{vigencia(d) || 'Sin fechas de vigencia registradas'}</p>
-              </div>
-            )) : (
-              <p style={e.ajustesTexto}>
-                No hay ajustes razonables registrados en SGADISA para este estudiante.
-              </p>
-            )}
-          </div>
-
+        <div style={{ marginTop: 20 }}>
           <DatosAdicionales idAlumno={ficha.idAlumno} />
         </div>
-      </section>
+      </>
     );
   }
 
   return (
-    <Pagina>
-      <Encabezado subtitulo="Ficha detallada del estudiante" textoVolver="Volver a alumnos" alVolver={volver} />
-
-      <main className="bu-contenedor" style={s.contenedor}>
-        <div style={e.cabecera}>
-          <div style={e.iconoCabecera}><IconoPersona tamano={28} /></div>
-          <div>
-            <p style={s.antetitulo}>Ficha del estudiante · {idAlumno}</p>
-            <h1 style={s.titulo}>Detalle del estudiante</h1>
-            <p style={s.bajada}>
-              Información registrada y vigencia de los ajustes razonables autorizados.
-            </p>
-          </div>
-        </div>
-
-        {cuerpo}
-
-        <NotaLegal />
-      </main>
-    </Pagina>
+    <Lienzo>
+      <EnlaceVolver texto="Volver a alumnos" onClick={volver} />
+      {cuerpo}
+      <NotaLegal />
+    </Lienzo>
   );
 }

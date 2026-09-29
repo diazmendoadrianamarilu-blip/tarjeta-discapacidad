@@ -465,7 +465,7 @@ function ordenarDiscapacidades(lista) {
   return [...lista].sort((x, y) => Number(y.principal) - Number(x.principal));
 }
 
-const PARTICULAS = new Set(['de', 'del', 'la', 'las', 'los', 'y', 'e', 'da', 'van', 'von']);
+const PARTICULAS = new Set(['de', 'del', 'la', 'las', 'los', 'y', 'e', 'o', 'u', 'a', 'al', 'en', 'con', 'para', 'por', 'da', 'van', 'von']);
 
 /* Banner guarda los nombres en mayúsculas: "GÓMEZ DE LA CRUZ" → "Gómez de la Cruz". */
 export function nombrePropio(texto) {
@@ -482,14 +482,20 @@ export function nombrePropio(texto) {
 
 const ROMANOS = /^(i{1,3}|iv|v|vi{1,3}|ix|x|xi{1,3})$/i;
 
-/* "INVESTIGACION II" → "Investigacion II". Solo transforma si viene en mayúsculas. */
+/* "INVESTIGACION II" → "Investigacion II"; "Anatomía Y Fisiología Ii" →
+   "Anatomía y Fisiología II". Si viene en mayúsculas se pasa a nombre propio;
+   en todos los casos se corrigen romanos y conjunciones/preposiciones. */
 export function tituloCurso(texto) {
   const t = String(texto || '').replace(/\s+/g, ' ').trim();
   if (!t) return null;
-  if (t !== t.toLocaleUpperCase('es')) return t;
-  return nombrePropio(t)
+  const base = t === t.toLocaleUpperCase('es') ? nombrePropio(t) : t;
+  return base
     .split(' ')
-    .map((p) => (ROMANOS.test(p) ? p.toUpperCase() : p))
+    .map((p, i) => {
+      if (ROMANOS.test(p)) return p.toUpperCase();
+      if (i > 0 && PARTICULAS.has(p.toLocaleLowerCase('es'))) return p.toLocaleLowerCase('es');
+      return p;
+    })
     .join(' ');
 }
 
