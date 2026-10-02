@@ -93,10 +93,3 @@ devuelve `x-discapacidad-detalle` 1.0.0 (ID, carrera, campus, programa, nivel,
 tipos de discapacidad y vigencias), y se entrega el JSON de
 `x-bienestar-lista-sesion` 1.0.0 (API nueva) con el filtro
 `SIRASGN_PIDM = SECURITY_PRINCIPAL_ID`.
-
-## 5. Fuera del alcance de este cambio
-
-El acta habilita la tarjeta también para personal administrativo. Un
-administrativo no tiene NRC asignados (SIRASGN), así que verá el mensaje "No
-tienes estudiantes…". Para ellos hace falta otra API (padrón por facultad o
-programa) y la definición del filtro con Bienestar Universitario.
